@@ -1,0 +1,297 @@
+workers: 2
+max_serv_count: 20     # maximum number of services to proces on a host
+max_seach_results: 45  # number of search results to process (if depth > 0) 
+min_pivot_weight: 0.0  # only pivot into fields that have a weight greater than this
+
+rarity:
+  min: 2               # minimum host count for a field to be treated as "interesting"
+  max: 120             # maximum host count for a field to be treated as "interesting"
+
+# These are the fields that will be used to determine if a report for that field should be
+# generated and analyzed.
+#
+# The weight is a number from 0 to 1 that is used to determine whether the tool will use that
+# field to pivot into. For example, if you set the --min-pivot-weight to 1.0, and it matches
+# a field with a weight of 0.1, the pivot will be taken.
+fields:
+  - field: services.banner_hex
+    weight: 1.0
+  - field: services.ssh.endpoint_id.raw
+    weight: 0.9
+  - field: services.ssh.server_host_key.fingerprint_sha256
+    weight: 1.0
+  - field: services.http.response.body_hash
+    weight: 1.0
+    ignore:
+      # don't generate reports for any body_hash's with these values
+      - "sha1:4dcf84abb6c414259c1d5aec9a5598eebfcea842"
+      - "sha256:55c801a02ad9a08dfdcf159ba0c8354b37189519ce9a95129941ec6daeca5648"
+      - "sha1:11e71530661013137721d635f95630722eaa6afd"
+      - "sha256:036bacf3bd34365006eac2a78e4520a953a6250e9550dcf9c9d4b0678c225b4c"
+  - field: services.jarm.fingerprint
+    weight: 1.0
+  - field: services.tls.certificates.leaf_data.subject_dn
+    weight: 1.0
+  - field: services.tls.certificates.leaf_data.issuer_dn
+    weight: 1.0
+    ignore:
+      - "C=US, O=DigiCert Inc, CN=DigiCert Global G2 TLS RSA SHA256 2020 CA1"
+  - field: ~services.tls.certificates.leaf_data.issuer.common_name
+    weight: 0.5
+    ignore:
+      - "127.0.0.1"
+  - field: services.tls.certificates.leaf_data.issuer.common_name
+    weight: 1.0
+    ignore:
+      - "DigiCert Global G2 TLS RSA SHA256 2020 CA1"
+  - field: ~services.tls.certificates.leaf_data.subject.organization
+    weight: 0.5
+    ignore:
+      - "Cloudflare, Inc."
+  - field: services.tls.certificates.leaf_data.subject.organization
+    weight: 1.0
+  - field: services.certificate
+    weight: 1.0
+  - field: services.http.response.html_tags
+    weight: 0.9
+    ignore:
+      # don't generate reports for any html_tags with these values
+      - "<title>301 Moved Permanently</title>"
+      - "<title>403 Forbidden</title>"
+      - "<title> 403 Forbidden </title>"
+      - "<title>404 Not Found</title>"
+      - "<title></title>"
+      - "<title>401 - Unauthorized</title>"
+      - "<TITLE>Not Found</TITLE>"
+      - '<meta charset="UTF-8">' 
+      - '<meta charset="utf-8">'
+      - "<title>400 The plain HTTP request was sent to HTTPS port</title>"
+      - '<meta charset="UTF-8" />'
+      - '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />'
+      - '<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">'
+      - '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">'
+      - "<TITLE>ERROR: The request could not be satisfied</TITLE>"
+      - "<title>400 The plain HTTP request was sent to HTTPS port</title>"
+  - field: services.http.response.favicons.md5_hash
+    weight: 0.9
+  - field: services.parsed.opc_ua.endpoints.endpoint_url
+    weight: 0.5
+  - field: services.parsed.opc_ua.endpoints.server.product_uri
+    weight: 0.5
+  - field: services.parsed.opc_ua.endpoints.server.application_name.text
+    weight: 0.5
+  - field: ~services.parsed.winrm.ntlm_info.dns_server_name
+    weight: 0.1
+  - field: services.parsed.winrm.ntlm_info.dns_server_name
+    weight: 0.4
+  - field: ~services.parsed.winrm.ntlm_info.netbios_computer_name
+    weight: 0.5
+  - field: services.parsed.winrm.ntlm_info.netbios_computer_name
+    weight: 0.8
+  - field: services.snmp.oid_system.desc
+    weight: 0.5
+  - field: services.snmp.oid_system.contact
+    weight: 0.5
+  - field: services.snmp.oid_system.name
+    weight: 0.3
+  - field: services.snmp.oid_system.location
+    weight: 0.2
+  - field: services.snmp.engine.organization
+    weight: 0.1
+  - field: services.parsed.eip.identity.product_name
+    weight: 0.4
+  - field: services.parsed.eip.identity.vendor_name
+    weight: 0.3
+  - field: services.tls.certificates.leaf_data.subject.organizational_unit
+    weight: 1.0
+  - field: ~services.tls.certificates.leaf_data.subject.email_address
+    weight: 0.2
+  - field: services.tls.certificates.leaf_data.subject.email_address
+    weight: 0.5
+  - field: services.telnet.banner
+    weight: 1.0
+  - field: services.http.response.headers
+    weight: 0.8
+    ignore:
+      # don't generate reports for any HTTP response headers with these key/values
+      - "Location": ["*/"]
+      - "Vary": ["Accept-Encoding"]
+      - "Content-Type":
+          - "text/html"
+          - "text/html; charset=UTF-8"
+          - "text/html;charset=UTF-8"
+          - "text/html; charset=utf-8"
+      - "Content-type":
+          - "text/html"
+          - "text/html; charset=UTF-8"
+          - "text/html;charset=UTF-8"
+          - "text/html; charset=utf-8"
+      - "Connection": 
+          - "close"
+          - "keep-alive"
+          - "Keep-Alive"
+      - "Transfer-Encoding": ["chunked"]
+      - "Pragma": ["no-cache"]
+      - "Cache-Control": ["no-cache"]
+      - "Content-Encoding": ["gzip"]
+      - "Date": ["<REDACTED>"]
+      - "X-Frame-Options":
+          - "SAMEORIGIN"
+          - "DENY"
+      - "Server":
+          - "nginx"
+          - "Microsoft-HTTPAPI/2.0"
+          - "cloudflare"
+      - "Content-Length": ["*"]
+      - "Last-Modified": ["*"]
+      - "Accept-Ranges": ["bytes"]
+  - field: ~services.parsed.l2tp.sccrp.attribute_values.hostname
+    weight: 0.2
+  - field: services.parsed.l2tp.sccrp.attribute_values.hostname
+    weight: 0.5
+  - field: services.parsed.l2tp.sccrp.attribute_values.vendor_name
+    weight: 0.5
+  - field: ~services.vnc.desktop_name
+    weight: 0.2
+  - field: services.vnc.desktop_name
+    weight: 0.5
+  - field: services.bacnet.vendor_name
+    weight: 0.4
+  - field: services.bacnet.application_software_revision
+    weight: 0.2
+  - field: services.bacnet.object_name
+    weight: 0.2
+  - field: services.bacnet.model_name
+    weight: 0.2
+  - field: ~services.bacnet.description
+    weight: 0.1
+  - field: services.bacnet.description
+    weight: 0.2
+  - field: ~services.parsed.chromecast.applications.display_name
+    weight: 0.0
+  - field: services.parsed.chromecast.applications.display_name
+    weight: 0.1
+  - field: services.cobalt_strike.x86.post_ex.x86
+    weight: 0.1
+  - field: services.cobalt_strike.x86.post_ex.x64
+    weight: 0.1
+  - field: services.cobalt_strike.x86.http_post.uri
+    weight: 1.0
+  - field: services.cobalt_strike.x86.user_agent
+    weight: 1.0
+  - field: services.cwmp.http_info.favicons.md5_hash
+    weight: 0.5
+  - field: services.cwmp.http_info.headers
+    weight: 0.5
+  - field: services.cwmp.http_info.html_tags
+    weight: 0.5
+  - field: services.parsed.cwmp.server
+    weight: 1.0
+  - field: ~services.parsed.dhcpdiscover.params.device_info.machine_name
+    weight: 0.2
+  - field: services.parsed.dhcpdiscover.params.device_info.machine_name
+    weight: 0.5
+  - field: services.parsed.dhcpdiscover.params.device_info.device_type
+    weight: 0.1
+  - field: services.parsed.dhcpdiscover.params.device_info.vendor
+    weight: 0.1
+  - field: services.parsed.dhcpdiscover.params.device_info.version
+    weight: 0.1
+  - field: services.elasticsearch.system_info.version.number
+    weight: 0.1
+  - field: services.elasticsearch.system_info.version.lucene_version
+    weight: 0.1
+  - field: services.elasticsearch.node_info.cluster_combined_info.name
+    weight: 0.1
+  - field: services.elasticsearch.node_info.cluster_combined_info.indices.docs.count
+    weight: 0.1
+  - field: services.elasticsearch.node_info.nodes.node_data.host
+    weight: 0.3
+  - field: services.elasticsearch.node_info.nodes.node_data.name
+    weight: 0.1
+  - field: services.parsed.etcd.v2.members.id
+    weight: 0.1
+  - field: services.parsed.etcd.v3.members.peer_urls
+    weight: 0.1
+  - field: services.parsed.etcd.v3.members.client_urls
+    weight: 0.2
+  - field: ~services.fox.hostname
+    weight: 0.2
+  - field: services.fox.hostname
+    weight: 0.5
+  - field: ~services.fox.station_name
+    weight: 0.1
+  - field: services.fox.station_name
+    weight: 0.3
+  - field: services.fox.sys_info
+    weight: 0.1
+  - field: services.fox.vm_version
+    weight: 0.1
+  - field: services.fox.os_version
+    weight: 0.1
+  - field: services.fox.hostId
+    weight: 0.1
+  - field: services.mms.model
+    weight: 0.1
+  - field: services.mms.vendor
+    weight: 0.1
+  - field: services.mongodb.build_info.git_version
+    weight: 0.1
+  - field: services.mysql.server_version
+    weight: 0.1
+  - field: services.parsed.nbd.exports.name
+    weight: 0.1
+  - field: services.parsed.onvif.services.namespace
+    weight: 0.1
+  - field: services.parsed.onvif.services.xaddr
+    weight: 0.1
+  - field: services.parsed.onvif.hostname.name
+    weight: 0.1
+  - field: services.parsed.pcom.model
+    weight: 0.3
+  - field: services.parsed.pcom.os_build
+    weight: 0.1
+  - field: services.parsed.pcom.os_version
+    weight: 0.1
+  - field: ~services.pc_anywhere.name
+    weight: 0.5
+  - field: services.pc_anywhere.name
+    weight: 1.0
+  - field: ~services.pptp.hostname
+    weight: 0.5
+  - field: services.pptp.hostname
+    weight: 1.0
+  - field: services.parsed.redlion_crimson.model
+    weight: 0.1
+  - field: services.parsed.rocketmq.topics.topic_list
+    weight: 0.5
+  - field: services.parsed.rocketmq.version
+    weight: 0.1
+  - field: services.s7.plant_id
+    weight: 0.2
+  - field: services.s7.memory_serial_number
+    weight: 0.3
+  - field: ~services.parsed.scpi.manufacturer
+    weight: 0.0
+  - field: services.parsed.scpi.manufacturer
+    weight: 0.1
+  - field: services.parsed.scpi.model
+    weight: 0.1
+  - field: services.parsed.scpi.firmware
+    weight: 0.1
+  - field: services.smb.group_name
+    weight: 1.0
+  - field: services.smb.ntlm
+    weight: 0.1
+  - field: services.upnp.devices.manufacturer
+    weight: 0.1
+  - field: ~services.upnp.devices.model_name
+    weight: 0.0
+  - field: services.upnp.devices.model_name
+    weight: 0.1
+  - field: services.upnp.devices.serial_number
+    weight: 0.1
+  - field: services.parsed.zeromq.handshake.socket_type
+    weight: 0.0
+  - field: services.tls.certificate.parsed.issuer.locality
+    weight: 1.0
