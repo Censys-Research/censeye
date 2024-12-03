@@ -51,6 +51,7 @@ class Config:
         self.min_host_count = 2
         self.max_host_count = 120
         self.min_pivot_weight = 0.0
+        self.plugins = []
 
         self.fields = [
             Field(name="services.banner_hex", weight=1.0, ignore=[]),
@@ -405,6 +406,7 @@ class Config:
         self.min_host_count = cfg.get("rarity", {}).get("min", self.min_host_count)
         self.max_host_count = cfg.get("rarity", {}).get("max", self.max_host_count)
         self.min_pivot_weight = cfg.get("min_pivot_weight", self.min_pivot_weight)
+        self.plugins = cfg.get("plugins", self.plugins)
 
         if "fields" in cfg:
             for item in cfg["fields"]:
@@ -420,13 +422,13 @@ class Config:
         return iter(self.fields)
 
     def __getitem__(self, key):
-        for field in self.fields:
-            if field == key:
-                return field
+        for _field in self.fields:
+            if _field == key:
+                return _field
         return None
 
 
 if __name__ == "__main__":
     cfg = Config("config.yaml")
-    for field in cfg:
-        print(field)
+    for _field in cfg:
+        print(_field)

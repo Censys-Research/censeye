@@ -2,6 +2,9 @@ workers: 2
 max_serv_count: 20     # maximum number of services to proces on a host
 max_seach_results: 45  # number of search results to process (if depth > 0) 
 min_pivot_weight: 0.0  # only pivot into fields that have a weight greater than this
+plugins: [            # list of plugins to run
+  # "vt",
+]
 
 rarity:
   min: 2               # minimum host count for a field to be treated as "interesting"

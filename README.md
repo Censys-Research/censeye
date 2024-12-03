@@ -91,10 +91,12 @@ Additionally, Censeye can be quite query-intensive. The auto-pivoting feature, i
 Usage: censeye [OPTIONS] [IP]
 
 Options:
-  -d, --depth INTEGER             [auto-pivoting] search depth (0 is single host, 1 is all the hosts that host found, etc...)
+  -d, --depth INTEGER             [auto-pivoting] search depth (0 is single host, 1 is all the hosts that host found,
+                                  etc...)
   --workers INTEGER               number of workers to run queries in parallel
   -w, --workspace TEXT            directory for caching results (defaults to XDG configuration path)
-  -m, --max-search-results N      maximum number of censys search results to process
+  -m, --max-search-results INTEGER
+                                  maximum number of censys search results to process
   -ll, --log-level TEXT           set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   -s, --save TEXT                 save report to a file
   -p, --pivot-threshold INTEGER   maximum number of hosts for a search term that will trigger a pivot (default: 120)
@@ -104,11 +106,15 @@ Options:
   --input-workers INTEGER         number of parallel workers to process inputs (e.g., only has an effect on stdin inputs)
   -qp, --query-prefix-count       If the --query-prefix is set, this will return a count of hosts for both the filtered and
                                   unfiltered results.
-  --vt                            Lookup IPs in VirusTotal
   -c, --config TEXT               configuration file path
-  -mp, -M, --min-pivot-weight N   [auto-pivoting] only pivot into fields with a weight greater-than or equal-to this number (see configuration)
+  -mp, -M, --min-pivot-weight FLOAT
+                                  [auto-pivoting] only pivot into fields with a weight greater-than or equal-to this number
+                                  (see configuration)
   --fast                          [auto-pivoting] alias for --min-pivot-weight 1.0
   --slow                          [auto-pivoting] alias for --min-pivot-weight 0.0
+  -P, --plugin TEXT               list of plugins to load
+  --version                       Show the version and exit.
+  -h, --help                      Show this message and exit.
 ```
 
 These options will all override the settings in the [configuration](#configuration) file.
@@ -319,6 +325,35 @@ In this case, if a host includes the `services.tls.certificates.leaf_data.subjec
 ```
 
 The idea is to determine the number of hosts where that value is found anywhere in the data, not just within the specific field itself.
+
+### Plugins
+
+Censeye supports plugins that can be loaded via the `--plugin` argument. These plugins are Python files that contain a class that inherits from `censeye.plugin.Plugin`. The plugin class must implement the `run` method, which is called with the host data as an argument. The plugin can then modify the host data as needed.
+
+For example, the following plugin will add a new field to the host data:
+
+```python
+# my_plugin.py
+from censeye.plugin import Plugin
+
+class MyPlugin(Plugin):
+    def __init__(self):
+        super().__init__("my-plugin")
+
+    def run(self, host):
+        ip = host['ip']
+        # Do something with the host data
+        host['labels'].append('my-label')
+
+# Register the plugin
+__plugin__ = MyPlugin()
+```
+
+To use this plugin, save it to a file (e.g., `my_plugin.py`) and run Censeye with the `--plugin` argument:
+
+```shell
+$ censeye --plugin my-plugin 1.1.1.1
+```
 
 ## Workspaces
 

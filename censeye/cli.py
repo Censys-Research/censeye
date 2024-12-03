@@ -13,7 +13,7 @@ from rich.style import Style
 from rich.table import Table
 from rich.tree import Tree
 
-from . import censeye, vt
+from . import censeye, plugins
 from .__version__ import __version__
 from .config import Config
 
@@ -26,7 +26,6 @@ async def run_censeye(
     at_time=None,
     query_prefix=None,
     duo_reporting=False,
-    use_vt=False,
     config=Config(),
 ):
     if cache_dir is None:
@@ -51,8 +50,6 @@ async def run_censeye(
     style_odir = Style(bold=False, color="#5696CC")
     style_odir_bold = Style(bold=True, color="#9FC3E2")
 
-    vtc = vt.VT()
-
     for host in result:
         if host["ip"] in seen_hosts:
             continue
@@ -62,12 +59,17 @@ async def run_censeye(
             # these are just empty anyway.
             continue
 
-        in_vt = False
-
-        if use_vt:
-            in_vt = vtc.is_malicious(host["ip"])
-            if in_vt:
-                host["labels"].append("[bold red]in-virustotal[/bold red]")
+        for plugin in config.plugins:
+            if plugin in plugins.plugins:
+                try:
+                    plugin_obj = plugins.plugins[plugin]
+                except KeyError:
+                    logging.error(f"Plugin {plugin} not found.")
+                    continue
+                try:
+                    plugin_obj.run(host)
+                except Exception as e:
+                    logging.error(f"Plugin {plugin} failed: {e}")
 
         sres = sorted(host["report"], key=lambda x: x["hosts"], reverse=True)
         link = f"https://search.censys.io/hosts/{host['ip']}"
@@ -78,7 +80,7 @@ async def run_censeye(
                     host["at_time"].isoformat(timespec="milliseconds") + "Z"
                 )
                 link = f"{link}?at_time={at_encoded}"
-            except:
+            except Exception:
                 pass
 
         title = f"[link={link}]{host['ip']}[/link] (depth: {host['depth']}) (Via: {host['parent_ip']} -- {host['found_via']} -- {host['labels']})"
@@ -231,7 +233,7 @@ async def run_censeye(
         tree = Tree(f"[link=https://search.censys.io/hosts/{root}][b]{root}[/b][/link]")
         _build_tree(root, tree)
 
-        console.print(f"Pivot Tree:")
+        console.print("Pivot Tree:")
         console.print(tree)
 
     console.print(f"Total queries used: {c.get_num_queries()}")
@@ -304,7 +306,6 @@ async def run_censeye(
     default=False,
     help="If the --query-prefix is set, this will return a count of hosts for both the filtered and unfiltered results.",
 )
-@click.option("--vt", is_flag=True, default=False, help="Lookup IPs in VirusTotal")
 @click.option(
     "--config",
     "-c",
@@ -325,6 +326,12 @@ async def run_censeye(
 @click.option(
     "--slow", is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 0.0"
 )
+@click.option(
+    "--plugin",
+    "-P",
+    multiple=True,
+    help="list of plugins to load",
+)
 @click.version_option(__version__)
 def main(
     ip,
@@ -339,11 +346,11 @@ def main(
     query_prefix,
     input_workers,
     query_prefix_count,
-    vt,
     cfgfile_,
     min_pivot_weight,
     fast,
     slow,
+    plugin,
 ):
 
     if sum([fast, slow]) > 1:
@@ -369,6 +376,9 @@ def main(
 
     if slow:
         cfg.min_pivot_weight = 0.0
+
+    if plugin:
+        cfg.plugins.extend(plugin)
 
     def _parse_ip(d):
         return d.replace("[.]", ".").replace('"', "").replace(",", "").strip()
@@ -405,7 +415,6 @@ def main(
                 at_time=at_time,
                 depth=depth,
                 console=console,
-                use_vt=vt,
                 config=cfg,
             )
             queue.task_done()
@@ -436,7 +445,6 @@ def main(
                 at_time=at_time,
                 depth=depth,
                 console=console,
-                use_vt=vt,
                 config=cfg,
             )
         )

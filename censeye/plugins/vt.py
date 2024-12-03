@@ -1,8 +1,10 @@
 import json
 import os
+import warnings
 
 import requests
 from appdirs import user_cache_dir
+from ..plugin import Plugin
 
 
 class VT:
@@ -27,14 +29,14 @@ class VT:
         return response.json()
 
     def fetch_ip(self, ip):
-        cachefile = os.path.join(self.cache_dir, f"{ip}.json")
-        if cachefile and os.path.exists(cachefile):
-            with open(cachefile, "r") as f:
+        cache_file = os.path.join(self.cache_dir, f"{ip}.json")
+        if cache_file and os.path.exists(cache_file):
+            with open(cache_file, "r") as f:
                 return json.load(f)
         else:
             dat = self._fetch_ip(ip)
             if dat:
-                with open(cachefile, "w") as f:
+                with open(cache_file, "w") as f:
                     json.dump(dat, f)
             return dat
 
@@ -47,3 +49,16 @@ class VT:
             )
             return stats.get("suspicious", 0) > 0 or stats.get("malicious", 0) > 0
         return False
+
+
+class VTPlugin(Plugin):
+    def __init__(self):
+        super().__init__("vt")
+
+    def run(self, host):
+        vt = VT()
+        if vt.is_malicious(host["ip"]):
+            host["labels"].append("[bold red]in-virustotal[/bold red]")
+
+
+__plugin__ = VTPlugin()
