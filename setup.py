@@ -9,7 +9,7 @@ import os
 import sys
 from shutil import rmtree
 
-from setuptools import Command, setup
+from setuptools import Command, setup, find_packages
 
 # Package meta-data.
 NAME = "censeye"
@@ -87,7 +87,7 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
-    py_modules=["censeye"],
+    packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
     entry_points={
         "console_scripts": ["censeye=censeye:cli.main"],
     },
