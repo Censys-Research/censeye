@@ -5,6 +5,7 @@ import os
 import pickle
 import urllib.parse
 
+from bs4 import BeautifulSoup
 from censys.search import SearchClient
 
 from .config import Config
@@ -311,11 +312,9 @@ class Aggregator:
         return ret
 
     def _get_odir_files(self, data):
-        from bs4 import BeautifulSoup
-
-        soup = BeautifulSoup(data, "html.parser")
+        parser = BeautifulSoup(data, "html.parser")
         ret = []
-        for a_tag in soup.find_all("a", href=True):
+        for a_tag in parser.find_all("a", href=True):
             href = a_tag["href"]
             if "?" not in href and not href.startswith("."):
                 ret.append(href)
