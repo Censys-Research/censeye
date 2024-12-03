@@ -2,21 +2,20 @@ import asyncio
 import logging
 import sys
 import urllib.parse
-
-
 from collections import defaultdict
 
 import click
 from appdirs import user_cache_dir
 from dateutil import parser as dateutil_parser
+from rich import box
 from rich.console import Console
 from rich.style import Style
 from rich.table import Table
 from rich.tree import Tree
-from rich import box
 
-from lib import censeye, vt
-from lib.config import Config
+from . import censeye, vt
+from .__version__ import __version__
+from .config import Config
 
 
 async def run_censeye(
@@ -304,9 +303,20 @@ async def run_censeye(
     default=None,
     help="configuration file path",
 )
-@click.option("--min-pivot-weight", "-mp", "-M", type=float, help="[auto-pivoting] only pivot into fields with a weight greater-than or equal-to this number (see configuration)")
-@click.option('--fast', is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 1.0")
-@click.option('--slow', is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 0.0")
+@click.option(
+    "--min-pivot-weight",
+    "-mp",
+    "-M",
+    type=float,
+    help="[auto-pivoting] only pivot into fields with a weight greater-than or equal-to this number (see configuration)",
+)
+@click.option(
+    "--fast", is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 1.0"
+)
+@click.option(
+    "--slow", is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 0.0"
+)
+@click.version_option(__version__)
 def main(
     ip,
     depth,
@@ -352,7 +362,7 @@ def main(
         cfg.min_pivot_weight = 0.0
 
     def _parse_ip(d):
-        return d.replace("[.]", ".").replace("\"", "").replace(",", "").strip()
+        return d.replace("[.]", ".").replace('"', "").replace(",", "").strip()
 
     logging.captureWarnings(True)
 
@@ -366,8 +376,9 @@ def main(
             level=llevel, format="%(asctime)s - %(levelname)s - %(message)s"
         )
     else:
-        logging.basicConfig(level=logging.CRITICAL, format="%(asctime)s - %(levelname)s - %(message)s")
-
+        logging.basicConfig(
+            level=logging.CRITICAL, format="%(asctime)s - %(levelname)s - %(message)s"
+        )
 
     console = Console(record=True, soft_wrap=True)
 
@@ -426,5 +437,4 @@ def main(
 
 
 if __name__ == "__main__":
-
     main()

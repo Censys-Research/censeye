@@ -1,7 +1,7 @@
-import requests
 import json
 import os
 
+import requests
 from appdirs import user_cache_dir
 
 

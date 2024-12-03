@@ -5,9 +5,10 @@ import os
 import pickle
 
 from censys.search import CensysHosts
+
 from .aggregator import Aggregator
-from .const import *
 from .config import Config
+from .const import *
 
 
 class Censeye:
