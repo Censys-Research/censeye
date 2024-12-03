@@ -48,9 +48,10 @@ class Aggregator:
             if not field:
                 return False
 
-            for ent in field.ignore:
-                if k in ent and (v in ent[k] or "*" in ent[k]):
-                    return True
+            if field.ignore:
+                for ent in field.ignore:
+                    if k in ent and (v in ent[k] or "*" in ent[k]):
+                        return True
 
         elif k in self.config:
             field = self.config[k]
@@ -345,8 +346,12 @@ class Aggregator:
             body = service.get("http", {}).get("response", {}).get("body", "")
             if body:
                 odir_files = self._get_odir_files(body)
-                for f in odir_files:
-                    queries.append(("open-directory", f))
+
+                if len(odir_files) < self.MAX_VALUE_LENGTH:
+                    for f in odir_files:
+                        queries.append(("open-directory", f))
+                else:
+                    logging.warning(f"Too many open-directory files to search for {host_data['ip']}")
 
         for k, v in queries:
             # check if there is a value-only variant.
