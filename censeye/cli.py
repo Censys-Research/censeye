@@ -46,7 +46,11 @@ async def run_censeye(
     searches = sorted(searches)
     seen_hosts = set()
 
-    style = Style(bold=True)
+    # TODO: make these configurable, e.g., themes.
+    style_bold = Style(bold=True)
+    style_odir = Style(bold=False, color="#5696CC")
+    style_odir_bold = Style(bold=True, color="#9FC3E2")
+
     vtc = vt.VT()
 
     for host in result:
@@ -131,13 +135,18 @@ async def run_censeye(
                     r["hosts"] <= config.max_host_count
                     and (r["hosts"] + hist_count) > 1
                 ):
-                    row_style = style
+                    if r["key"] == "open-directory":
+                        row_style = style_odir_bold
+                    else:
+                        row_style = style_bold
 
                     if hist_count:
                         count_col = f"{host_count} (+{hist_count})"
                     else:
                         count_col = f"{host_count}"
                 else:
+                    if r["key"] == "open-directory":
+                        row_style = style_odir
                     count_col = f"{host_count}"
 
                 if "noprefix_hosts" in r:
