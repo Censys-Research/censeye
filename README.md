@@ -1,23 +1,23 @@
 # Contents
 
 * [Censeye](#censeye)
-   * [Introduction](#introduction)
-   * [Setup](#setup)
-   * [How?](#how)
-   * [Warning](#warning)
-   * [Usage](#usage)
-   * [Reporting](#reporting)
-   * [Auto Pivoting](#auto-pivoting)
-   * [Historical Certificates](#historical-certificates)
-   * [Query Prefix Filtering](#query-prefix-filtering)
-   * [Saving reports](#saving-reports)
-   * [Configuration](#configuration)
-      * [Configuring Rarity](#configuring-rarity)
-      * [Configuring Fields](#configuring-fields)
-         * [Ignoring field values](#ignoring-field-values)
-         * [Field weights](#field-weights)
-         * [Value-only fields](#value-only-fields)
-   * [Workspaces](#workspaces)
+  * [Introduction](#introduction)
+  * [Setup](#setup)
+  * [How?](#how)
+  * [Warning](#warning)
+  * [Usage](#usage)
+  * [Reporting](#reporting)
+  * [Auto Pivoting](#auto-pivoting)
+  * [Historical Certificates](#historical-certificates)
+  * [Query Prefix Filtering](#query-prefix-filtering)
+  * [Saving reports](#saving-reports)
+  * [Configuration](#configuration)
+    * [Configuring Rarity](#configuring-rarity)
+    * [Configuring Fields](#configuring-fields)
+      * [Ignoring field values](#ignoring-field-values)
+      * [Field weights](#field-weights)
+      * [Value-only fields](#value-only-fields)
+  * [Workspaces](#workspaces)
 
 # Censeye
 
@@ -25,21 +25,21 @@
 
 This tool is designed to help researchers identify hosts with characteristics similar to a given target. For instance, if you come across a suspicious host, the tool enables you to determine the most effective CenQL search terms for discovering related infrastructure. Once those search terms are identified, the utility can automatically query the Censys API to fetch hosts matching those criteria, download the results, and repeat the analysis on the newly found hosts.
 
-Censeye was hacked together over the course of a few weeks to automate routine tasks performed by our research team. While it has proven useful in streamlining daily workflows, its effectiveness may vary depending on specific use cases. 
+Censeye was hacked together over the course of a few weeks to automate routine tasks performed by our research team. While it has proven useful in streamlining daily workflows, its effectiveness may vary depending on specific use cases.
 
 ## Setup
 
 Using python virtual-env, we can do the following to set everything up:
 
-```
-$ python -m venv .venv && source .venv/bin/activate  
-$ pip install -r requirements.txt 
-$ python ./censeye.py --help
+```shell
+python -m venv .venv && source .venv/bin/activate  
+pip install -r requirements.txt 
+python ./censeye.py --help
 ```
 
 **Note**: Censeye requires the latest version of [censys-python](https://github.com/censys/censys-python) and a Censys API key, this is configured via the `censys` command-line tool:
 
-```
+```shell
 $ censys config
 
 Censys API ID: XXX
@@ -115,8 +115,8 @@ These options will all override the settings in the [configuration](#configurati
 
 If an IP is not specified in the arguments, the default behavior is to read IPs from stdin. This enables integration with other tools to seed input for this utility. For example:
 
-```
-$ censys search labels=c2 | jq '.[].ip' | python censeye.py
+```shell
+censys search labels=c2 | jq '.[].ip' | python censeye.py
 ```
 
 ## Reporting
@@ -141,7 +141,7 @@ When the `--depth` argument is set to a value greater than zero, the "interestin
 
 Furthermore, the output will include a new section labeled the `Pivot Tree`. For example:
 
-```
+```plain
 Pivot Tree:
 5.188.87.38
 ├── 5.178.1.11      (via: services.ssh.server_host_key.fingerprint_sha256="f95812cbb46f0a664a8f2200592369b105d17dfe8255054963aac4e2df53df51") ['remote-access']
@@ -161,16 +161,15 @@ Here, our initial input was the host `5.188.87.38`. Using the host details from 
 
 One of the matching hosts was `179.60.149.209`, and you can see how Censeye discovered that host through the `via:` statement in the report:
 
-```
+```plain
 ├── 179.60.149.209  (via: services.ssh.server_host_key.fingerprint_sha256="f95812cbb46f0a664a8f2200592369b105d17dfe8255054963aac4e2df53df51")
 ```
 
-- `179.60.149.209` was found using the search query `services.ssh.server_host_key.fingerprint_sha256="f95812cbb46f0a664a8f2200592369b105d17dfe8255054963aac4e2df53df51"` that was found on `5.188.87.38`
-- `185.232.67.15` was found using the search query `services.ssh.server_host_key.fingerprint_sha256="6278464bcad66259d2cd62deeb11c8488f170a1a650d5748bd7a8610026ca634"` which was found running on `179.60.149.209`
-- `193.29.13.183` was found using the search query `services.ssh.server_host_key.fingerprint_sha256="bd613b3be57f18c3bceb0aaf86a28ad8b6df7f9bccacf58044f1068d1787f8a5"` which was found running on `185.232.67.15`
+* `179.60.149.209` was found using the search query `services.ssh.server_host_key.fingerprint_sha256="f95812cbb46f0a664a8f2200592369b105d17dfe8255054963aac4e2df53df51"` that was found on `5.188.87.38`
+* `185.232.67.15` was found using the search query `services.ssh.server_host_key.fingerprint_sha256="6278464bcad66259d2cd62deeb11c8488f170a1a650d5748bd7a8610026ca634"` which was found running on `179.60.149.209`
+* `193.29.13.183` was found using the search query `services.ssh.server_host_key.fingerprint_sha256="bd613b3be57f18c3bceb0aaf86a28ad8b6df7f9bccacf58044f1068d1787f8a5"` which was found running on `185.232.67.15`
 
 ## Historical Certificates
-
 
 There are some special cases for reporting, one of which involves TLS certificate fingerprints. If a certificate is found on a host and it is unique to that host (i.e., only observed on the current host being analyzed), Censeye will query historical data in Censys and report all hosts in the past that have used this certificate.
 
@@ -187,7 +186,7 @@ These historical hosts are also included in [auto-pivoting](#Auto_Pivoting) if t
 One of the things we use this tool here at Censys for is to use hosts that we already know are malicious to find other hosts that may be malicious that we have not labeled as such. For example:
 
 ```shell
-$ censys search 'labels=c2' | jq '.[].ip' | python censeye.py --query-prefix 'not labels=c2'
+censys search 'labels=c2' | jq '.[].ip' | python censeye.py --query-prefix 'not labels=c2'
 ```
 
 This `--query-prefix` flag tells Censeye that for every aggregation report that it generates, add the `not labels=c2` to the query. The goal here is to look at hosts already labeled as a `c2` to find other hosts not labeled as `c2`.
@@ -249,7 +248,6 @@ fields:
           - "Keep-Alive"
 ```
 
-
 ### Configuring Rarity
 
 The rarity setting defines what constitutes an "interesting" CenQL term. Once an aggregation report is fetched for a given CenQL statement, the term is flagged as "interesting" if the number of matching hosts is greater than `min` but less than `max`.
@@ -258,7 +256,6 @@ If the `--depth` flag is set, these "interesting" search terms are used to pivot
 
 1. The report will include different colors and highlighting for the matching rows.
 2. The final output will contain an aggregate list of "interesting search terms."
-
 
 ### Configuring Fields
 
@@ -269,13 +266,12 @@ Each field definition includes two configurable options:
 1. **Ignored Values**: Specific values within the field that should be excluded from the report.
 2. **Weight**: The relative importance of the field, which can influence prioritization in reporting and analysis.
 
-
 #### Ignoring field values
 
 The `ignored` configuration tells the utility to exclude certain values from generating reports. For example, the `services.http.response.body_hash` field in the configuration may specify two values to ignore:
 
-- `"sha1:4dcf84abb6c414259c1d5aec9a5598eebfcea842"`
-- `"sha256:036bacf3bd34365006eac2a78e4520a953a6250e9550dcf9c9d4b0678c225b4c"`
+* `"sha1:4dcf84abb6c414259c1d5aec9a5598eebfcea842"`
+* `"sha256:036bacf3bd34365006eac2a78e4520a953a6250e9550dcf9c9d4b0678c225b4c"`
 
 When analyzing a host's result, if the _value_ of that field matches one of these configured values, a report will not be generated for that _specific_ field.
 
@@ -306,7 +302,7 @@ In the above configuration, some fields are prefixed with a `~` character, for e
 
 In this case, if a host includes the `services.tls.certificates.leaf_data.subject.organization` field in its data, the value is used as a wildcard search in Censys. The resulting CenQL statement will resemble the following:
 
-```
+```dsl
 (not services.tls.certificates.leaf_data.subject.organization=$VALUE) and "$VALUE"
 ```
 

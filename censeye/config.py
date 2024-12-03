@@ -1,6 +1,7 @@
-import yaml
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
+
+import yaml
 
 IgnoreType = Optional[Union[List[str], List[Dict[str, List[str]]]]]
 
