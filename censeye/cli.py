@@ -2,21 +2,20 @@ import asyncio
 import logging
 import sys
 import urllib.parse
-
-
 from collections import defaultdict
 
 import click
 from appdirs import user_cache_dir
 from dateutil import parser as dateutil_parser
+from rich import box
 from rich.console import Console
 from rich.style import Style
 from rich.table import Table
 from rich.tree import Tree
-from rich import box
 
-from lib import censeye, vt
-from lib.config import Config
+from . import censeye, vt
+from .__version__ import __version__
+from .config import Config
 
 
 async def run_censeye(
@@ -326,6 +325,7 @@ async def run_censeye(
 @click.option(
     "--slow", is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 0.0"
 )
+@click.version_option(__version__)
 def main(
     ip,
     depth,
@@ -446,5 +446,4 @@ def main(
 
 
 if __name__ == "__main__":
-
     main()

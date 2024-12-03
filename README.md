@@ -31,10 +31,10 @@ Censeye was hacked together over the course of a few weeks to automate routine t
 
 Using python virtual-env, we can do the following to set everything up:
 
-```
+```shell
 $ python -m venv .venv && source .venv/bin/activate  
-$ pip install -r requirements.txt 
-$ python ./censeye.py --help
+$ pip install censeye
+$ censeye --help
 ```
 
 **Note**: Censeye requires the latest version of [censys-python](https://github.com/censys/censys-python) and a Censys API key, this is configured via the `censys` command-line tool:
@@ -88,7 +88,7 @@ Additionally, Censeye can be quite query-intensive. The auto-pivoting feature, i
 ## Usage
 
 ```plain
-Usage: censeye.py [OPTIONS] [IP]
+Usage: censeye [OPTIONS] [IP]
 
 Options:
   -d, --depth INTEGER             [auto-pivoting] search depth (0 is single host, 1 is all the hosts that host found, etc...)
@@ -116,7 +116,7 @@ These options will all override the settings in the [configuration](#configurati
 If an IP is not specified in the arguments, the default behavior is to read IPs from stdin. This enables integration with other tools to seed input for this utility. For example:
 
 ```
-$ censys search labels=c2 | jq '.[].ip' | python censeye.py
+$ censys search labels=c2 | jq '.[].ip' | censeye
 ```
 
 ## Reporting
@@ -195,7 +195,7 @@ These historical hosts are also included in [auto-pivoting](#Auto_Pivoting) if t
 One of the things we use this tool here at Censys for is to use hosts that we already know are malicious to find other hosts that may be malicious that we have not labeled as such. For example:
 
 ```shell
-$ censys search 'labels=c2' | jq '.[].ip' | python censeye.py --query-prefix 'not labels=c2'
+$ censys search 'labels=c2' | jq '.[].ip' | censeye --query-prefix 'not labels=c2'
 ```
 
 This `--query-prefix` flag tells Censeye that for every aggregation report that it generates, add the `not labels=c2` to the query. The goal here is to look at hosts already labeled as a `c2` to find other hosts not labeled as `c2`.
@@ -210,7 +210,7 @@ If you wish to save the report as an HTML file, simply pass the `--save` flag wi
 
 ## Configuration
 
-Censeye ships with a built-in configuration file that defines the general settings along with the [keyword definitions](https://search.censys.io/search/definitions?resource=hosts) that are used to generate reports. But this can be overloaded by using the `--config` argument. The following is a snippet of this configuration file:
+Censeye ships with a built-in configuration file that defines the general settings along with the [keyword definitions](https://search.censys.io/search/definitions?resource=hosts) that are used to generate reports. But this can be overloaded by using the `--config` argument or the file at `~/.config/censys/censeye.yaml` will tried by default. The following is a snippet of this configuration file:
 
 ```yaml
 rarity:
@@ -325,3 +325,18 @@ The idea is to determine the number of hosts where that value is found anywhere 
 Censeye caches almost everything it does to avoid running the same queries for the same data repeatedly—which would be inefficient and time-consuming. A "workspace" is essentially a directory where the cache is stored. It is recommended to use a unique workspace (configured via the `--workspace` flag) and stick with it for as long as possible. Once you begin a hunt, continue using the same workspace to leverage the cache and minimize round-trip times (RTT).
 
 If, for some reason, you want all data to be fetched fresh from the API, you can use the `--no-cache` option. However, this is generally not recommended unless absolutely necessary.
+
+## Contributing
+
+If you have any ideas for improvements or new features, please feel free to open an issue or a pull request. We are always looking for ways to make this tool more useful and efficient.
+
+### Developer Setup
+
+To set up a development environment, you can use the following commands:
+
+```shell
+$ git clone https://github.com/Censys-Research/censeye.git
+$ cd censeye
+$ python -m venv .venv && source .venv/bin/activate
+$ pip install -e ".[dev]"
+```

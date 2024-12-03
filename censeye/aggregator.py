@@ -5,10 +5,10 @@ import os
 import pickle
 import urllib.parse
 
-
 from censys.search import SearchClient
-from .const import *
+
 from .config import Config
+from .const import *
 
 
 class Aggregator:
