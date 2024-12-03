@@ -21,6 +21,10 @@
 
 # Censeye
 
+[![PyPI](https://img.shields.io/pypi/v/censeye?color=orange&logo=pypi&logoColor=orange)](https://pypi.org/project/censeye/)
+[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue?logo=python)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/github/license/Censys-Research/censeye?logo=bsd)](https://github.com/Censys-Research/censeye/blob/main/LICENSE)
+
 ## Introduction
 
 This tool is designed to help researchers identify hosts with characteristics similar to a given target. For instance, if you come across a suspicious host, the tool enables you to determine the most effective CenQL search terms for discovering related infrastructure. Once those search terms are identified, the utility can automatically query the Censys API to fetch hosts matching those criteria, download the results, and repeat the analysis on the newly found hosts.
