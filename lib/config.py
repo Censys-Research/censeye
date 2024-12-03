@@ -39,6 +39,7 @@ class Config:
         self.min_pivot_weight = 0.0
 
         self.fields = [
+            Field(name="open-directory", weight=1.0, ignore=[]),
             Field(name="services.banner_hex", weight=1.0, ignore=[]),
             Field(name="services.ssh.endpoint_id.raw", weight=0.9, ignore=[]),
             Field(

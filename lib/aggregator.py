@@ -38,7 +38,7 @@ class Aggregator:
     def _is_kv_filtered(self, k, v, parent=None):
         import json
 
-        logging.debug(f"Checking if {json.dumps(k)}={type(v)} is filtered")
+        logging.debug(f"Checking if {json.dumps(k)}={v} is filtered")
         if len(str(v)) > self.MAX_VALUE_LENGTH:
             return True
 
@@ -241,6 +241,8 @@ class Aggregator:
             query = f'"{value}"'
         elif "headers" in key:
             query = f"{key}:{value}"
+        elif key == "open-directory":
+            query = f"services:(labels=open-dir and http.response.body='*{value}*')"
 
         if query == '""':
             return None
@@ -308,12 +310,44 @@ class Aggregator:
         logging.debug(f"aggregate report for query: {query}, hosts: {ret['hosts']}")
         return ret
 
+    def _get_odir_files(self, data):
+        from bs4 import BeautifulSoup
+
+        soup = BeautifulSoup(data, "html.parser")
+        ret = []
+        for a_tag in soup.find_all("a", href=True):
+            href = a_tag["href"]
+            if "?" not in href and not href.startswith("."):
+                ret.append(href)
+        return ret
+
     def get_queries(self, host_data):
         """
         generates censys-like queries from censys data
         """
         ret = []
         queries = self._generate_queries(host_data)
+
+        # TODO: we need to create a plugin system to automatically divvy out host data to generate queries.
+        for service in host_data.get("services", []):
+            labels = service.get("labels", [])
+
+            # this is a special case that looks for the open-dir label, and if found,
+            # pulls out the file names from the HTTP response data. Later on in the
+            # processing, it generates queries like:
+            #
+            #      services:(labels=open-dir and http.response.body='*$filename*')
+            #
+            # Note that this can be enabled/disabled like any other field here, just
+            # omit `open-directory` from the configuration.
+            if "open-dir" not in labels:
+                continue
+
+            body = service.get("http", {}).get("response", {}).get("body", "")
+            if body:
+                odir_files = self._get_odir_files(body)
+                for f in odir_files:
+                    queries.append(("open-directory", f))
 
         for k, v in queries:
             # check if there is a value-only variant.

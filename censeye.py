@@ -47,7 +47,11 @@ async def run_censeye(
     searches = sorted(searches)
     seen_hosts = set()
 
-    style = Style(bold=True)
+    # TODO: make these configurable, e.g., themes.
+    style_bold = Style(bold=True)
+    style_odir = Style(bold=False, color="#5696CC")
+    style_odir_bold = Style(bold=True, color="#9FC3E2")
+
     vtc = vt.VT()
 
     for host in result:
@@ -132,13 +136,18 @@ async def run_censeye(
                     r["hosts"] <= config.max_host_count
                     and (r["hosts"] + hist_count) > 1
                 ):
-                    row_style = style
+                    if r["key"] == "open-directory":
+                        row_style = style_odir_bold
+                    else:
+                        row_style = style_bold
 
                     if hist_count:
                         count_col = f"{host_count} (+{hist_count})"
                     else:
                         count_col = f"{host_count}"
                 else:
+                    if r["key"] == "open-directory":
+                        row_style = style_odir
                     count_col = f"{host_count}"
 
                 if "noprefix_hosts" in r:
@@ -304,9 +313,19 @@ async def run_censeye(
     default=None,
     help="configuration file path",
 )
-@click.option("--min-pivot-weight", "-mp", "-M", type=float, help="[auto-pivoting] only pivot into fields with a weight greater-than or equal-to this number (see configuration)")
-@click.option('--fast', is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 1.0")
-@click.option('--slow', is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 0.0")
+@click.option(
+    "--min-pivot-weight",
+    "-mp",
+    "-M",
+    type=float,
+    help="[auto-pivoting] only pivot into fields with a weight greater-than or equal-to this number (see configuration)",
+)
+@click.option(
+    "--fast", is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 1.0"
+)
+@click.option(
+    "--slow", is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 0.0"
+)
 def main(
     ip,
     depth,
@@ -352,7 +371,7 @@ def main(
         cfg.min_pivot_weight = 0.0
 
     def _parse_ip(d):
-        return d.replace("[.]", ".").replace("\"", "").replace(",", "").strip()
+        return d.replace("[.]", ".").replace('"', "").replace(",", "").strip()
 
     logging.captureWarnings(True)
 
@@ -366,8 +385,9 @@ def main(
             level=llevel, format="%(asctime)s - %(levelname)s - %(message)s"
         )
     else:
-        logging.basicConfig(level=logging.CRITICAL, format="%(asctime)s - %(levelname)s - %(message)s")
-
+        logging.basicConfig(
+            level=logging.CRITICAL, format="%(asctime)s - %(levelname)s - %(message)s"
+        )
 
     console = Console(record=True, soft_wrap=True)
 

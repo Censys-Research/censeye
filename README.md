@@ -133,6 +133,14 @@ If your terminal supports it, each row is clickable and will navigate to the Cen
 
 The next report, labeled `Interesting search terms`, is an aggregate list of all Censys search statements that fall within the [rarity](#configuring-rarity) threshold—also referred to as "Interesting search terms."
 
+### Open Directories
+
+When Censeye finds a service on a host that is an HTTP open directory, it will parse out the filenames from the response body, and generate reports on those. In the following screenshot we see one such case. Instead of the normal search field keys, it is prefaced with the special token `open-directory`; the value of which are the number of hosts on the internet that also have an open directory and have this filename somewhre in the response.
+
+![open directories](./static/open_directories.png)
+
+And just like the other reports, the "interesting search terms" are made available at the end.
+
 ## Auto Pivoting
 
 Like web crawlers discover websites, Censeye can be used to crawl Censys!
