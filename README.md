@@ -201,7 +201,7 @@ If you wish to save the report as an HTML file, simply pass the `--save` flag wi
 
 ## Configuration
 
-Censeye ships with a built-in configuration file that defines the general settings along with the [keyword definitions](https://search.censys.io/search/definitions?resource=hosts) that are used to generate reports. But this can be overloaded by using the `--config` argument. The following is a snippet of this configuration file:
+Censeye ships with a built-in configuration file that defines the general settings along with the [keyword definitions](https://search.censys.io/search/definitions?resource=hosts) that are used to generate reports. But this can be overloaded by using the `--config` argument or the file at `~/.config/censys/censeye.yaml` will tried by default. The following is a snippet of this configuration file:
 
 ```yaml
 rarity:

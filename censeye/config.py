@@ -1,5 +1,7 @@
+import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
+import warnings
 
 import yaml
 
@@ -29,7 +31,18 @@ class Config:
         self._load_defauts()
 
         if config_file:
-            self._load_config(config_file)
+            try:
+                self._load_config(config_file)
+            except FileNotFoundError:
+                warnings.warn(f"Config file {config_file} not found, using defaults")
+        else:
+            home_dir = os.path.expanduser("~")
+            try:
+                self._load_config(
+                    os.path.join(home_dir, ".config", "censys", "censeye.yaml")
+                )
+            except FileNotFoundError:
+                pass
 
     def _load_defauts(self):
         self.workers = 2
