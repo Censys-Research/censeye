@@ -14,9 +14,6 @@ rarity:
 # field to pivot into. For example, if you set the --min-pivot-weight to 1.0, and it matches
 # a field with a weight of 0.1, the pivot will be taken.
 fields:
-  # open-directory is a special case, it's not a real field, but we translate it to a field
-  - field: open-directory
-    weight: 1.0
   - field: services.banner_hex
     weight: 1.0
   - field: services.ssh.endpoint_id.raw
