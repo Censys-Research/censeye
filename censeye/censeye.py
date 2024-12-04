@@ -3,6 +3,17 @@ import hashlib
 import logging
 import os
 import pickle
+import time
+
+from rich.progress import (
+    BarColumn,
+    SpinnerColumn,
+    Progress,
+    TaskID,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
 
 from censys.search import CensysHosts
 
@@ -295,20 +306,28 @@ class Censeye:
         queue = asyncio.Queue()
         results = []
 
-        workers = [
-            asyncio.create_task(self._worker(queue, results, searches))
-            for _ in range(self.config.workers)
-        ]
+        with Progress(
+            TextColumn("[yellow]{task.description}", justify="left"),
+            SpinnerColumn(spinner_name='earth'),
+            transient=True
+        ) as progressbar:
+            workers = [
+                asyncio.create_task(self._worker(queue, results, searches))
+                for _ in range(self.config.workers)
+            ]
 
-        await self._process_ip(
-            ip, 0, None, results, searches, queue, "", at_time=self.at_time
-        )
-        await queue.join()
+            tsearch = progressbar.add_task("[yellow] Searching... ", total=None)
 
-        for w in workers:
-            w.cancel()
+            await self._process_ip(
+                ip, 0, None, results, searches, queue, "", at_time=self.at_time
+            )
+            await queue.join()
+            progressbar.update(tsearch, advance=1)
 
-        await asyncio.gather(*workers, return_exceptions=True)
+            for w in workers:
+                w.cancel()
+
+            await asyncio.gather(*workers, return_exceptions=True)
 
         return results, searches
 
