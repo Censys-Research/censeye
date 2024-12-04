@@ -59,13 +59,9 @@ async def run_censeye(
             # these are just empty anyway.
             continue
 
+        # run plugins
         for plugin in config.plugins:
-            if plugin in plugins.plugins:
-                try:
-                    plugin_obj = plugins.plugins[plugin]
-                except KeyError:
-                    logging.error(f"Plugin {plugin} not found.")
-                    continue
+            if plugin_obj := plugins.plugins.get(plugin):
                 try:
                     plugin_obj.run(host)
                 except Exception as e:
@@ -381,7 +377,14 @@ def main(
         cfg.plugins.extend(plugin)
 
     def _parse_ip(d):
-        return d.replace("[.]", ".").replace('"', "").replace(",", "").strip()
+        period_replacements = ["[.]", ".]", "[."]
+        remove = ['"', ","]
+
+        for r in period_replacements:
+            d = d.replace(r, ".")
+        for r in remove:
+            d = d.replace(r, "")
+        return d.strip()
 
     logging.captureWarnings(True)
 

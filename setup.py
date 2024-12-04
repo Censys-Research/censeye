@@ -9,7 +9,7 @@ import os
 import sys
 from shutil import rmtree
 
-from setuptools import Command, setup, find_packages
+from setuptools import Command, find_packages, setup
 
 # Package meta-data.
 NAME = "censeye"

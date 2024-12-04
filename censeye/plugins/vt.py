@@ -1,23 +1,17 @@
 import json
 import os
-import warnings
 
 import requests
-from appdirs import user_cache_dir
+
 from ..plugin import Plugin
 
 
 class VT:
     """silly little VT client"""
 
-    def __init__(self, key=None, cache_dir=None):
-        if cache_dir is None:
-            cache_dir = user_cache_dir("censys/vt")
-        if key is None:
-            key = os.getenv("VT_API_KEY")
-        os.makedirs(cache_dir, exist_ok=True)
-        self.cache_dir = cache_dir
+    def __init__(self, key, cache_dir):
         self.key = key
+        self.cache_dir = cache_dir
 
     def _fetch_ip(self, ip):
         url = f"https://www.virustotal.com/api/v3/ip_addresses/{ip}"
@@ -56,7 +50,7 @@ class VTPlugin(Plugin):
         super().__init__("vt")
 
     def run(self, host):
-        vt = VT()
+        vt = VT(self.get_env("VT_API_KEY"), self.get_cache_dir())
         if vt.is_malicious(host["ip"]):
             host["labels"].append("[bold red]in-virustotal[/bold red]")
 

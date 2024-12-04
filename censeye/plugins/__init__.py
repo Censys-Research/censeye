@@ -1,5 +1,5 @@
-from pathlib import Path
 import importlib
+from pathlib import Path
 
 
 def load_plugins():

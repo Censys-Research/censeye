@@ -343,7 +343,8 @@ class MyPlugin(Plugin):
     def run(self, host):
         ip = host['ip']
         # Do something with the host data
-        host['labels'].append('my-label')
+        # Labels use rich text formatting (https://rich.readthedocs.io/en/latest/console.html#color-systems)
+        host['labels'].append('[bold red]my-label[/bold red]')
 
 # Register the plugin
 __plugin__ = MyPlugin()
@@ -352,7 +353,10 @@ __plugin__ = MyPlugin()
 To use this plugin, save it to a file (e.g., `my_plugin.py`) and run Censeye with the `--plugin` argument:
 
 ```shell
+# Use the plugin
 $ censeye --plugin my-plugin 1.1.1.1
+# Use multiple plugins
+$ censeye --plugin my-plugin --plugin another-plugin 1.1.1.1
 ```
 
 ## Workspaces
