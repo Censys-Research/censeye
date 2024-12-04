@@ -66,6 +66,8 @@ async def run_censeye(
                     plugin_obj.run(host)
                 except Exception as e:
                     logging.error(f"Plugin {plugin} failed: {e}")
+            else:
+                logging.error(f"Plugin {plugin} not found.")
 
         sres = sorted(host["report"], key=lambda x: x["hosts"], reverse=True)
         link = f"https://search.censys.io/hosts/{host['ip']}"

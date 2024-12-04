@@ -1,6 +1,3 @@
-import json
-import os
-
 import requests
 
 from ..plugin import Plugin
@@ -9,11 +6,10 @@ from ..plugin import Plugin
 class VT:
     """silly little VT client"""
 
-    def __init__(self, key, cache_dir):
+    def __init__(self, key):
         self.key = key
-        self.cache_dir = cache_dir
 
-    def _fetch_ip(self, ip):
+    def fetch_ip(self, ip) -> dict | None:
         url = f"https://www.virustotal.com/api/v3/ip_addresses/{ip}"
         headers = {"accept": "application/json", "x-apikey": self.key}
 
@@ -22,36 +18,47 @@ class VT:
             return None
         return response.json()
 
-    def fetch_ip(self, ip):
-        cache_file = os.path.join(self.cache_dir, f"{ip}.json")
-        if cache_file and os.path.exists(cache_file):
-            with open(cache_file, "r") as f:
-                return json.load(f)
-        else:
-            dat = self._fetch_ip(ip)
-            if dat:
-                with open(cache_file, "w") as f:
-                    json.dump(dat, f)
-            return dat
-
-    def is_malicious(self, ip):
-        # just return true/false based on what other people say
-        dat = self.fetch_ip(ip)
-        if dat:
-            stats = (
-                dat.get("data", {}).get("attributes", {}).get("last_analysis_stats", {})
-            )
-            return stats.get("suspicious", 0) > 0 or stats.get("malicious", 0) > 0
-        return False
-
 
 class VTPlugin(Plugin):
     def __init__(self):
         super().__init__("vt")
+        self.api_key = self.get_env("VT_API_KEY")
+
+    def is_malicious(self, response: dict):
+        # just return true/false based on what other people say
+        if response:
+            stats = (
+                response.get("data", {})
+                .get("attributes", {})
+                .get("last_analysis_stats", {})
+            )
+            suspicious = stats.get("suspicious", 0)
+            malicious = stats.get("malicious", 0)
+            return suspicious > 0 or malicious > 0
+        return False
 
     def run(self, host):
-        vt = VT(self.get_env("VT_API_KEY"), self.get_cache_dir())
-        if vt.is_malicious(host["ip"]):
+        # Get the IP address of the host
+        ip = host["ip"]
+
+        # Initialize the VirusTotal client
+        vt = VT(self.api_key)
+
+        # Check the cache
+        cache_file = self.get_cache_file(f"{ip}.json")
+
+        # If the cache exists, load it
+        response = self.load_json(cache_file)
+
+        # If the cache is empty, fetch the data
+        if not response:
+            # Fetch the data
+            response = vt.fetch_ip(ip)
+            # Save the response to the cache
+            self.save_json(cache_file, response)
+
+        # Check if the host is malicious
+        if self.is_malicious(response):
             host["labels"].append("[bold red]in-virustotal[/bold red]")
 
 
