@@ -13,6 +13,16 @@ from rich.style import Style
 from rich.table import Table
 from rich.tree import Tree
 
+from rich.progress import (
+    BarColumn,
+    SpinnerColumn,
+    Progress,
+    TaskID,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
+
 from . import censeye, vt
 from .__version__ import __version__
 from .config import Config
@@ -42,9 +52,21 @@ async def run_censeye(
         config=config,
     )
 
-    result, searches = await c.run(ip)
-    searches = sorted(searches)
-    seen_hosts = set()
+    progressbar = Progress(
+        TextColumn("[yellow]{task.description}", justify="left"),
+        SpinnerColumn(spinner_name='earth'),
+        transient=True,
+        console=console
+    )
+
+    tsearch = progressbar.add_task("[yellow] Searching... ", total=None)
+
+    with progressbar:
+        result, searches = await c.run(ip)
+        searches = sorted(searches)
+        seen_hosts = set()
+
+        progressbar.update(tsearch, advance=1)
 
     # TODO: make these configurable, e.g., themes.
     style_bold = Style(bold=True)
