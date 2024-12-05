@@ -1,6 +1,6 @@
 import requests
 
-from ..plugin import Plugin
+from ..plugin import HostLabelerPlugin
 
 
 class VT:
@@ -19,9 +19,9 @@ class VT:
         return response.json()
 
 
-class VTPlugin(Plugin):
+class VTPlugin(HostLabelerPlugin):
     def __init__(self):
-        super().__init__("vt")
+        super().__init__("vt", "virustotal")
         self.api_key = self.get_env("VT_API_KEY")
 
     def is_malicious(self, response: dict):
@@ -37,7 +37,7 @@ class VTPlugin(Plugin):
             return suspicious > 0 or malicious > 0
         return False
 
-    def run(self, host):
+    def label_host(self, host: dict) -> None:
         # Get the IP address of the host
         ip = host["ip"]
 
@@ -59,7 +59,12 @@ class VTPlugin(Plugin):
 
         # Check if the host is malicious
         if self.is_malicious(response):
-            host["labels"].append("[bold red]in-virustotal[/bold red]")
+            self.add_label(
+                host,
+                "in-virustotal",
+                style="bold red",
+                link=f"https://www.virustotal.com/gui/ip-address/{ip}",
+            )
 
 
 __plugin__ = VTPlugin()

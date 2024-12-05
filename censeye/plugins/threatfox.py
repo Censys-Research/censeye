@@ -5,7 +5,7 @@ import backoff
 import requests
 from requests.utils import default_user_agent
 
-from censeye.plugin import Plugin
+from censeye.plugin import HostLabelerPlugin
 
 
 def fatal_code(e: requests.exceptions.RequestException) -> bool:
@@ -135,12 +135,12 @@ class ThreatFoxClient:
         return response
 
 
-class ThreatFoxPlugin(Plugin):
+class ThreatFoxPlugin(HostLabelerPlugin):
     def __init__(self):
-        super().__init__("threatfox")
+        super().__init__("tf", "threatfox")
         self.api_key = self.get_env("THREATFOX_API_KEY")
 
-    def run(self, host):
+    def label_host(self, host: dict) -> None:
         # Get the IP address of the host
         ip = host["ip"]
 
@@ -168,11 +168,14 @@ class ThreatFoxPlugin(Plugin):
         # Get the IOCs from the response
         iocs = response.get("data", [])
 
-        if not iocs:
-            return
-
-        # Do something with the host data
-        host["labels"].append("[bold red]in-threatfox[/bold red]")
+        # If there are iocs, add a label to the host
+        if iocs:
+            self.add_label(
+                host,
+                "in-threatfox",
+                style="bold red",
+                link=f"https://threatfox.abuse.ch/browse.php?search=ioc%3A{ip}",
+            )
 
 
 # Register the plugin

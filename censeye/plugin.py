@@ -7,10 +7,12 @@ from appdirs import user_cache_dir
 
 class Plugin(ABC):
     short_name: str
+    long_name: str | None
     cache_dir: str
 
-    def __init__(self, short_name: str):
+    def __init__(self, short_name: str, long_name: str | None = None):
         self.short_name = short_name
+        self.long_name = long_name
         self.cache_dir = self.get_cache_dir()
 
     @abstractmethod
@@ -45,3 +47,30 @@ class Plugin(ABC):
 
     def __repr__(self) -> str:
         return str(self)
+
+
+class HostLabelerPlugin(Plugin):
+    @abstractmethod
+    def label_host(self, host: dict) -> None:
+        pass
+
+    def run(self, host: dict) -> None:
+        self.label_host(host)
+
+    def add_label(
+        self, host: dict, label: str, style: str | None = None, link: str | None = None
+    ) -> None:
+        if style:
+            label = f"[{style}]{label}[/{style}]"
+        if link:
+            label = f"[link={link}]{label}[/link]"
+        host["labels"].append(label)
+
+
+class HostEnricherPlugin(Plugin):
+    @abstractmethod
+    def enrich_host(self, host: dict) -> None:
+        pass
+
+    def run(self, host: dict) -> None:
+        self.enrich_host(host)
