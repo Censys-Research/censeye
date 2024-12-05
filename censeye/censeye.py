@@ -143,7 +143,6 @@ class Censeye:
                 qstr,
                 per_page=per_page,
                 pages=pages,
-                at_time=self.at_time,
             )
 
             all_hosts = []
