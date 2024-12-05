@@ -1,23 +1,38 @@
 import json
 import os
 from abc import ABC, abstractmethod
+from typing import Any, Dict
 
 from appdirs import user_cache_dir
 
+GADGET_NAMESPACE = "gadget.censeye"
 
-class Plugin(ABC):
+
+class Gadget(ABC):
     short_name: str
     long_name: str | None
     cache_dir: str
+    config: Dict[str, Any] = {}
 
-    def __init__(self, short_name: str, long_name: str | None = None):
+    Namespace = GADGET_NAMESPACE
+
+    def __init__(
+        self,
+        short_name: str,
+        long_name: str | None = None,
+        config: Dict[str, Any] = {},
+    ):
         self.short_name = short_name
         self.long_name = long_name
         self.cache_dir = self.get_cache_dir()
+        self.config = config
 
     @abstractmethod
     def run(self, host: dict) -> None:
         pass
+
+    def set_config(self, config: Dict[str, Any] | None) -> None:
+        self.config = config or self.config
 
     # Helper methods
     def get_env(self, key: str, default=None):
@@ -49,7 +64,7 @@ class Plugin(ABC):
         return str(self)
 
 
-class HostLabelerPlugin(Plugin):
+class HostLabelerGadget(Gadget):
     @abstractmethod
     def label_host(self, host: dict) -> None:
         pass
@@ -67,10 +82,21 @@ class HostLabelerPlugin(Plugin):
         host["labels"].append(label)
 
 
-class HostEnricherPlugin(Plugin):
+class QueryGeneratorGadget(Gadget):
     @abstractmethod
-    def enrich_host(self, host: dict) -> None:
+    def generate_query(self, host: dict) -> set[tuple[str, str]] | None:
         pass
 
-    def run(self, host: dict) -> None:
-        self.enrich_host(host)
+    def run(self, host: dict) -> set[tuple[str, str]] | None:
+        ret = set()
+        q = self.generate_query(host)
+
+        if not q:
+            return None
+
+        for k, v in q:
+            if not k.endswith(self.Namespace):
+                k = f"{k}.{self.Namespace}"
+            ret.add((k, v))
+
+        return ret

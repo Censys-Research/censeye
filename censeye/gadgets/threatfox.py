@@ -5,7 +5,7 @@ import backoff
 import requests
 from requests.utils import default_user_agent
 
-from censeye.plugin import HostLabelerPlugin
+from censeye.gadget import HostLabelerGadget
 
 
 def fatal_code(e: requests.exceptions.RequestException) -> bool:
@@ -135,40 +135,30 @@ class ThreatFoxClient:
         return response
 
 
-class ThreatFoxPlugin(HostLabelerPlugin):
+class ThreatFoxGadget(HostLabelerGadget):
     def __init__(self):
         super().__init__("tf", "threatfox")
         self.api_key = self.get_env("THREATFOX_API_KEY")
 
     def label_host(self, host: dict) -> None:
-        # Get the IP address of the host
         ip = host["ip"]
 
-        # Initialize the ThreatFox client
         client = ThreatFoxClient(api_key=self.api_key)
-
-        # Check the cache
         cache_file = self.get_cache_file(f"{ip}.json")
-
-        # If the cache exists, load it
         response = self.load_json(cache_file)
 
         # If the cache is empty, get the recent IOCs
         if not response:
             # Get search for IOCs related to the IP
             response = client.search_iocs(ip)
-            # Save the response to the cache
             self.save_json(cache_file, response)
 
-        # Check the query_status
         query_status = response.get("query_status", "")
         if query_status != "ok":
             return
 
-        # Get the IOCs from the response
         iocs = response.get("data", [])
 
-        # If there are iocs, add a label to the host
         if iocs:
             self.add_label(
                 host,
@@ -178,5 +168,4 @@ class ThreatFoxPlugin(HostLabelerPlugin):
             )
 
 
-# Register the plugin
-__plugin__ = ThreatFoxPlugin()
+__gadget__ = ThreatFoxGadget()

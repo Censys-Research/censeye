@@ -1,6 +1,6 @@
 import requests
 
-from ..plugin import HostLabelerPlugin
+from censeye.gadget import HostLabelerGadget
 
 
 class VT:
@@ -19,7 +19,7 @@ class VT:
         return response.json()
 
 
-class VTPlugin(HostLabelerPlugin):
+class VTGadget(HostLabelerGadget):
     def __init__(self):
         super().__init__("vt", "virustotal")
         self.api_key = self.get_env("VT_API_KEY")
@@ -38,23 +38,13 @@ class VTPlugin(HostLabelerPlugin):
         return False
 
     def label_host(self, host: dict) -> None:
-        # Get the IP address of the host
         ip = host["ip"]
-
-        # Initialize the VirusTotal client
         vt = VT(self.api_key)
-
-        # Check the cache
         cache_file = self.get_cache_file(f"{ip}.json")
-
-        # If the cache exists, load it
         response = self.load_json(cache_file)
 
-        # If the cache is empty, fetch the data
         if not response:
-            # Fetch the data
             response = vt.fetch_ip(ip)
-            # Save the response to the cache
             self.save_json(cache_file, response)
 
         # Check if the host is malicious
@@ -67,4 +57,4 @@ class VTPlugin(HostLabelerPlugin):
             )
 
 
-__plugin__ = VTPlugin()
+__gadget__ = VTGadget()

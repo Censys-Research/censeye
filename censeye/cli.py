@@ -13,9 +13,11 @@ from rich.style import Style
 from rich.table import Table
 from rich.tree import Tree
 
-from . import censeye, plugins
+from . import censeye
 from .__version__ import __version__
 from .config import Config
+from .gadget import Gadget, GADGET_NAMESPACE
+from .gadgets import unarmed_gadgets
 
 
 async def run_censeye(
@@ -27,7 +29,9 @@ async def run_censeye(
     query_prefix=None,
     duo_reporting=False,
     config=Config(),
+    gadgets: set[Gadget] = set(),
 ):
+
     if cache_dir is None:
         cache_dir = user_cache_dir("censys/censeye")
         logging.debug(f"Using cache dir: {cache_dir}")
@@ -39,6 +43,7 @@ async def run_censeye(
         query_prefix=query_prefix,
         duo_reporting=duo_reporting,
         config=config,
+        armed_gadgets=gadgets,
     )
 
     result, searches = await c.run(ip)
@@ -47,8 +52,8 @@ async def run_censeye(
 
     # TODO: make these configurable, e.g., themes.
     style_bold = Style(bold=True)
-    style_odir = Style(bold=False, color="#5696CC")
-    style_odir_bold = Style(bold=True, color="#9FC3E2")
+    style_gadget = Style(bold=False, color="#5696CC")
+    style_gadget_bold = Style(bold=True, color="#9FC3E2")
 
     for host in result:
         if host["ip"] in seen_hosts:
@@ -58,16 +63,6 @@ async def run_censeye(
         if host["depth"] > depth:
             # these are just empty anyway.
             continue
-
-        # run plugins
-        for plugin in config.plugins:
-            if plugin_obj := plugins.plugins.get(plugin):
-                try:
-                    plugin_obj.run(host)
-                except Exception as e:
-                    logging.error(f"Plugin {plugin} failed: {e}")
-            else:
-                logging.error(f"Plugin {plugin} not found.")
 
         sres = sorted(host["report"], key=lambda x: x["hosts"], reverse=True)
         link = f"https://search.censys.io/hosts/{host['ip']}"
@@ -135,8 +130,8 @@ async def run_censeye(
                     r["hosts"] <= config.max_host_count
                     and (r["hosts"] + hist_count) > 1
                 ):
-                    if r["key"] == "open-directory":
-                        row_style = style_odir_bold
+                    if r["key"].endswith(f".{GADGET_NAMESPACE}"):
+                        row_style = style_gadget_bold
                     else:
                         row_style = style_bold
 
@@ -145,8 +140,8 @@ async def run_censeye(
                     else:
                         count_col = f"{host_count}"
                 else:
-                    if r["key"] == "open-directory":
-                        row_style = style_odir
+                    if r["key"].endswith(f".{GADGET_NAMESPACE}"):
+                        row_style = style_gadget
                     count_col = f"{host_count}"
 
                 if "noprefix_hosts" in r:
@@ -325,10 +320,10 @@ async def run_censeye(
     "--slow", is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 0.0"
 )
 @click.option(
-    "--plugin",
-    "-P",
+    "--gadget",
+    "-G",
     multiple=True,
-    help="list of plugins to load",
+    help="list of gadgets to load",
 )
 @click.version_option(__version__)
 def main(
@@ -348,7 +343,7 @@ def main(
     min_pivot_weight,
     fast,
     slow,
-    plugin,
+    gadget,
 ):
 
     if sum([fast, slow]) > 1:
@@ -375,8 +370,18 @@ def main(
     if slow:
         cfg.min_pivot_weight = 0.0
 
-    if plugin:
-        cfg.plugins.extend(plugin)
+    for g in gadget:
+        cfg.gadgets.enable(g)
+
+    armed_gadgets = set()
+
+    for g in cfg.gadgets.enabled():
+        if g.name not in unarmed_gadgets:
+            raise ValueError(f"gadget {g} not loaded!")
+
+        loaded_gadget = unarmed_gadgets[g.name]
+        loaded_gadget.config = g.config
+        armed_gadgets.add(loaded_gadget)
 
     def _parse_ip(d):
         period_replacements = ["[.]", ".]", "[."]
@@ -397,11 +402,13 @@ def main(
             raise ValueError(f"Invalid log level: {log_level}")
 
         logging.basicConfig(
-            level=llevel, format="%(asctime)s - %(levelname)s - %(message)s"
+            level=llevel,
+            format="%(asctime)s [%(filename)s:%(lineno)d] - %(levelname)s - %(message)s",
         )
     else:
         logging.basicConfig(
-            level=logging.CRITICAL, format="%(asctime)s - %(levelname)s - %(message)s"
+            level=logging.CRITICAL,
+            format="%(asctime)s [%(filename)s:%(lineno)d] - %(levelname)s - %(message)s",
         )
 
     console = Console(record=True, soft_wrap=True)
@@ -421,6 +428,7 @@ def main(
                 depth=depth,
                 console=console,
                 config=cfg,
+                gadgets=armed_gadgets,
             )
             queue.task_done()
 
@@ -451,6 +459,7 @@ def main(
                 depth=depth,
                 console=console,
                 config=cfg,
+                gadgets=armed_gadgets,
             )
         )
 

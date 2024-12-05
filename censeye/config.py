@@ -26,6 +26,83 @@ class Field:
 
 
 @dataclass
+class Gadget:
+    name: str
+    config: Dict[str, Any]
+    short_name: str = ""
+    enabled: bool = False
+
+    def __hash__(self) -> int:
+        return hash(self.name)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+@dataclass
+class Gadgets:
+    def __init__(self, gadgets: List[Gadget] = []) -> None:
+        self.gadgets = gadgets
+
+    def __iter__(self):
+        return iter(self.gadgets)
+
+    def __getitem__(self, key):
+        for _gadget in self.gadgets:
+            if _gadget == key:
+                return _gadget
+        return None
+
+    def __contains__(self, key):
+        for _gadget in self.gadgets:
+            if _gadget == key:
+                return True
+        return False
+
+    def __len__(self):
+        return len(self.gadgets)
+
+    def __str__(self):
+        return str(self.gadgets)
+
+    def __repr__(self):
+        return repr(self.gadgets)
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Gadgets):
+            return self.gadgets == other.gadgets
+        return False
+
+    def __hash__(self) -> int:
+        return hash(self.gadgets)
+
+    def append(self, gadget: Gadget):
+        self.gadgets.append(gadget)
+
+    def extend(self, gadgets: List[Gadget]):
+        self.gadgets.extend(gadgets)
+
+    def enable(self, name: str):
+        for _gadget in self.gadgets:
+            if _gadget.name == name or _gadget.short_name == name:
+                _gadget.enabled = True
+                return
+
+        raise ValueError(f"Gadget {name} not found")
+
+    def disable(self, name: str):
+        for _gadget in self.gadgets:
+            if _gadget.name == name:
+                _gadget.enabled = False
+                return
+
+        raise ValueError(f"Gadget {name} not found")
+
+    def enabled(self) -> List[Gadget]:
+        return [gadget for gadget in self.gadgets if gadget.enabled]
+
+
+@dataclass
 class Config:
     def __init__(self, config_file=None) -> None:
         self._load_defauts()
@@ -44,16 +121,32 @@ class Config:
             except FileNotFoundError:
                 pass
 
-    def _load_defauts(self):
+    def _load_defauts(self) -> None:
         self.workers = 2
         self.max_serv_count = 20
         self.max_search_res = 45
         self.min_host_count = 2
         self.max_host_count = 120
         self.min_pivot_weight = 0.0
-        self.plugins = []
+
+        self.gadgets = Gadgets(
+            [
+                Gadget(name="open-directory", config={"max_files": 32, "min_chars": 1}),
+                Gadget(name="nobbler", config={"iterations": [4, 8, 16, 32]}),
+                Gadget(name="virustotal", config={}, short_name="vt", enabled=False),
+                Gadget(name="threatfox", config={}, short_name="tf", enabled=False),
+            ]
+        )
 
         self.fields = [
+            Field(
+                name="virus-total.gadget.censeye", weight=1.0, ignore=[]),
+            Field(
+                name="open-directory.gadget.censeye", weight=1.0, ignore=[]
+            ),  # for the opendirectory gadget
+            Field(
+                name="nobbler.gadget.censeye", weight=0.8, ignore=[]
+            ),  # for the byte-nobbler gadget
             Field(name="services.banner_hex", weight=1.0, ignore=[]),
             Field(name="services.ssh.endpoint_id.raw", weight=0.9, ignore=[]),
             Field(
@@ -406,7 +499,7 @@ class Config:
         self.min_host_count = cfg.get("rarity", {}).get("min", self.min_host_count)
         self.max_host_count = cfg.get("rarity", {}).get("max", self.max_host_count)
         self.min_pivot_weight = cfg.get("min_pivot_weight", self.min_pivot_weight)
-        self.plugins = cfg.get("plugins", self.plugins)
+        self.gadgets = cfg.get("gadgets", self.gadgets)
 
         if "fields" in cfg:
             for item in cfg["fields"]:
@@ -417,18 +510,22 @@ class Config:
                         ignore=item.get("ignore", []),
                     )
                 )
+        if "gadgets" in cfg:
+            self.gadgets = Gadgets()
+            for item in cfg["gadgets"]:
+                self.gadgets.append(
+                    Gadget(
+                        name=item["gadget"],
+                        config=item.get("config", {}),
+                        enabled=item.get("enabled", False),
+                    )
+                )
 
     def __iter__(self):
         return iter(self.fields)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> Field | None:
         for _field in self.fields:
             if _field == key:
                 return _field
         return None
-
-
-if __name__ == "__main__":
-    cfg = Config("config.yaml")
-    for _field in cfg:
-        print(_field)

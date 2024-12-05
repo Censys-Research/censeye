@@ -2,14 +2,33 @@ workers: 2
 max_serv_count: 20     # maximum number of services to proces on a host
 max_search_results: 45  # number of search results to process (if depth > 0) 
 min_pivot_weight: 0.0  # only pivot into fields that have a weight greater than this
-plugins: [            # list of plugins to run
-  # "virustotal", # (or "vt")
-  # "threatfox", # (or "tf")
-]
 
 rarity:
   min: 2               # minimum host count for a field to be treated as "interesting"
   max: 120             # maximum host count for a field to be treated as "interesting"
+
+gadgets:
+  # The open-directory gadget will parse out files from HTTP open directories and generate
+  # queries to find those file names on other hosts.
+  - gadget: open-directory
+    enabled: false # can be enabled here, or with the cli with `--gadget open-directory`
+    config:
+      max_files: 32 # if the number of files is over this number, then only the first N will be used to generate queries.
+      min_chars: 1 # the minimum length of a filename to be considered for generating queries.
+  # The nobbler gadget will look at UNKNOWN services, take the `services.banner_hex` as an input, and generate banner_hex queries
+  # of different lengths. The idea here is to check for patterns in the banner_hex field that may exist with protocols with headers or
+  # magic numbers where the actual payload may be dynamic.
+  - gadget: nobbler
+    enabled: false # can be enabled here, or with the cli with `--gadget nobbler`
+    config:
+      iterations: [4, 8, 16, 32] # generate wildcard banner_hex queries of these lengths, for example
+                                 # [4] `services.banner_hex=NNNNNNNN*`
+                                 # [8] `services.banner_hex=NNNNNNNNNNNNNNNN*`
+                                 # etc etc..
+  - gadget: virustotal
+    enabled: false
+  - gadget: threatfox
+    enabled: false
 
 # These are the fields that will be used to determine if a report for that field should be
 # generated and analyzed.
@@ -298,4 +317,10 @@ fields:
   - field: services.parsed.zeromq.handshake.socket_type
     weight: 0.0
   - field: services.tls.certificate.parsed.issuer.locality
+    weight: 1.0
+  # not actually used unless the open-directory gadget is enabled.
+  - field: open-directory.gadget.censeye
+    weight: 1.0
+  # not actually used unless the nobbler gadget is enabled.
+  - field: nobbler.gadget.censeye
     weight: 1.0

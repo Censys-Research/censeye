@@ -139,14 +139,6 @@ If your terminal supports it, each row is clickable and will navigate to the Cen
 
 The next report, labeled `Interesting search terms`, is an aggregate list of all Censys search statements that fall within the [rarity](#configuring-rarity) threshold—also referred to as "Interesting search terms."
 
-### Open Directories
-
-When Censeye finds a service on a host that is an HTTP open directory, it will parse out the filenames from the response body, and generate reports on those. In the following screenshot we see one such case. Instead of the normal search field keys, it is prefaced with the special token `open-directory`; the value of which are the number of hosts on the internet that also have an open directory and have this filename somewhre in the response.
-
-![open directories](./static/open_directories.png)
-
-And just like the other reports, the "interesting search terms" are made available at the end.
-
 ## Auto Pivoting
 
 Like web crawlers discover websites, Censeye can be used to crawl Censys!
@@ -185,7 +177,6 @@ One of the matching hosts was `179.60.149.209`, and you can see how Censeye disc
 
 ## Historical Certificates
 
-
 There are some special cases for reporting, one of which involves TLS certificate fingerprints. If a certificate is found on a host and it is unique to that host (i.e., only observed on the current host being analyzed), Censeye will query historical data in Censys and report all hosts in the past that have used this certificate.
 
 ![tls history](./static/cert_history.png)
@@ -213,6 +204,20 @@ In the above example under "Interesting search terms" we can see the resulting s
 ## Saving reports
 
 If you wish to save the report as an HTML file, simply pass the `--save` flag with an output filename, and the whole thing is there.
+
+## Gadgets
+
+Censeye "Gadgets" are bits of code that extend Censeye in two ways (currently): Query Generators, and Host Lableers.
+
+### Query Generators
+
+Query Generator gadgets are used to generate additional queries for reporting and pivoting just like any other configured field. 
+
+Currently, there are two query generator gadgets included with Censeye: 
+
+- "open-directory": This gadget will parse out file names in HTTP response bodies from the Censys host result that have a known open-directory. These filenames will then be expanded to a proper Censys query (e.g., `services:(labels=open-dir and http.response.body='*$FILENAME*')`) to find other open-dictories on other hosts.
+- "nobbler": This gadget will look at `UNKNOWN` services and generate one or more queries that attempt to find other hosts with the same banner, but at different offsets. The idea that many unknown responses will contain some binary protocol where there may be a header or some common element at the start of the response, but the actual data may be dynamic. 
+
 
 ## Configuration
 
@@ -326,7 +331,7 @@ In this case, if a host includes the `services.tls.certificates.leaf_data.subjec
 
 The idea is to determine the number of hosts where that value is found anywhere in the data, not just within the specific field itself.
 
-### Plugins
+### Developing New Gadgets
 
 Censeye supports plugins that can be loaded via the `--plugin` argument. These plugins are Python files that contain a class that inherits from `censeye.plugin.Plugin`. The plugin class must implement the `run` method, which is called with the host data as an argument. The plugin can then modify the host data as needed.
 
