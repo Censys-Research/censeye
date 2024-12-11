@@ -12,7 +12,8 @@ def load_gadgets() -> dict[str, Gadget]:
         module = importlib.import_module(f"censeye.gadgets.{file.stem}")
         gadget: Gadget = module.__gadget__
         gadgets[gadget.short_name] = gadget
-        gadgets[gadget.long_name] = gadget
+        if gadget.long_name:
+            gadgets[gadget.long_name] = gadget
     return gadgets
 
 
