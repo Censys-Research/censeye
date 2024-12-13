@@ -3,16 +3,14 @@ import hashlib
 import logging
 import os
 import pickle
-
 from typing import Set
 
 from censys.search import CensysHosts
 
 from .aggregator import Aggregator
-from .gadget import HostLabelerGadget
 from .config import Config
 from .const import *
-from . import gadgets
+from .gadget import Gadget, HostLabelerGadget
 
 
 class Censeye:
@@ -27,7 +25,7 @@ class Censeye:
         query_prefix=None,
         duo_reporting=False,
         config: Config = Config(),
-        armed_gadgets: Set[gadgets.Gadget] = set(),
+        armed_gadgets: Set[Gadget] = set(),
     ):
         self.config = config
         self.workers = config.workers

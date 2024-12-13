@@ -16,7 +16,7 @@ from rich.tree import Tree
 from . import censeye
 from .__version__ import __version__
 from .config import Config
-from .gadget import Gadget, GADGET_NAMESPACE
+from .gadget import GADGET_NAMESPACE, Gadget
 from .gadgets import unarmed_gadgets
 
 
@@ -325,9 +325,7 @@ async def run_censeye(
     multiple=True,
     help="list of gadgets to load",
 )
-@click.option(
-    "--list-gadgets", is_flag=True, help="list available gadgets"
-)
+@click.option("--list-gadgets", is_flag=True, help="list available gadgets")
 @click.version_option(__version__)
 def main(
     ip,
@@ -423,7 +421,9 @@ def main(
         table.add_column("desc", no_wrap=False)
 
         for name, g in unarmed_gadgets.items():
-            table.add_row(f"[bold]{name}[/bold]", f"[i]{', '.join(g.aliases)}[/i]", g.__doc__)
+            table.add_row(
+                f"[bold]{name}[/bold]", f"[i]{', '.join(g.aliases)}[/i]", g.__doc__
+            )
 
         console.print(table)
         sys.exit(0)

@@ -4,15 +4,13 @@ import logging
 import os
 import pickle
 import urllib.parse
-
 from typing import Set
 
 from censys.search import SearchClient
 
-from .gadget import QueryGeneratorGadget, GADGET_NAMESPACE
 from .config import Config
-from . import gadgets
 from .const import *
+from .gadget import GADGET_NAMESPACE, Gadget, QueryGeneratorGadget
 
 
 class Aggregator:
@@ -24,7 +22,7 @@ class Aggregator:
         query_prefix=None,
         duo_reporting=False,
         config: Config = Config(),
-        armed_gadgets: Set[gadgets.Gadget] = set(),
+        armed_gadgets: Set[Gadget] = set(),
     ):
         self.client = SearchClient(user_agent=USER_AGENT)
         self.seen_hosts = set()
