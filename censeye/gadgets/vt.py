@@ -23,6 +23,7 @@ class VTGadget(HostLabelerGadget):
     Configuration:
      - VT_API_KEY: *ENVVAR* VirusTotal API key
     """
+
     def __init__(self):
         super().__init__("virustotal", aliases=["vt"])
         self.api_key = self.get_env("VT_API_KEY")
