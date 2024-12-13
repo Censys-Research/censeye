@@ -29,7 +29,7 @@ class OpenDirectoryGadget(QueryGeneratorGadget):
             "?" not in file
             and not file.startswith(".")
             and not file == "/.."
-            and len(file) >= self.config["min_chars"]
+            and not len(file) < self.config["min_chars"]
         )
 
     def _parse_files(self, body: str) -> set[str]:
