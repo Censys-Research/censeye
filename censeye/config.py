@@ -1,7 +1,7 @@
 import os
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Set
 
 import yaml
 
@@ -27,39 +27,41 @@ class Field:
         return hash(self.name)
 
 
+from dataclasses import dataclass, field
+from typing import Any, Set, Dict
+
+
 @dataclass
 class Gadget:
     name: str
-    config: Dict[str, Any]
-    aliases: List[str] = field(default_factory=list)
+    aliases: List[str]
     enabled: bool = False
+    config: Dict[str, Any] = field(default_factory=dict)
 
     def __hash__(self) -> int:
-        return hash(self.name)
+        return hash((self.name, frozenset(self.aliases)))
 
-    def __str__(self) -> str:
-        return self.name
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Gadget):
+            return False
 
+        return self.name == other.name and self.aliases == other.aliases
 
-@dataclass
 class Gadgets:
-    def __init__(self, gadgets: List[Gadget] = []) -> None:
+    def __init__(self, gadgets: Set[Gadget] = set())-> None:
         self.gadgets = gadgets
 
     def __iter__(self):
         return iter(self.gadgets)
 
     def __getitem__(self, key):
-        for _gadget in self.gadgets:
-            if _gadget == key:
-                return _gadget
+        for gadget in self.gadgets:
+            if gadget.name == key or key in gadget.aliases:
+                return gadget
         return None
 
     def __contains__(self, key):
-        for _gadget in self.gadgets:
-            if _gadget == key:
-                return True
-        return False
+        return any(key == gadget.name or key in gadget.aliases for gadget in self.gadgets)
 
     def __len__(self):
         return len(self.gadgets)
@@ -76,33 +78,32 @@ class Gadgets:
         return False
 
     def __hash__(self) -> int:
-        return hash(self.gadgets)
+        return hash(frozenset(self.gadgets))
 
-    def append(self, gadget: Gadget):
-        self.gadgets.append(gadget)
+    def add(self, gadget: Gadget):
+        if gadget in self.gadgets:
+            self.gadgets.remove(gadget)
+        self.gadgets.add(gadget)
 
-    def extend(self, gadgets: List[Gadget]):
-        self.gadgets.extend(gadgets)
+    def update(self, gadgets: Set[Gadget]):
+        self.gadgets.update(gadgets)
 
     def enable(self, name: str):
-        for _gadget in self.gadgets:
-            if _gadget.name == name or name in _gadget.aliases:
-                _gadget.enabled = True
+        for gadget in self.gadgets:
+            if gadget.name == name or name in gadget.aliases:
+                gadget.enabled = True
                 return
-
         raise ValueError(f"Gadget {name} not found")
 
     def disable(self, name: str):
-        for _gadget in self.gadgets:
-            if _gadget.name == name or name in _gadget.aliases:
-                _gadget.enabled = False
+        for gadget in self.gadgets:
+            if gadget.name == name or name in gadget.aliases:
+                gadget.enabled = False
                 return
-
         raise ValueError(f"Gadget {name} not found")
 
-    def enabled(self) -> List[Gadget]:
-        return [gadget for gadget in self.gadgets if gadget.enabled]
-
+    def enabled(self) -> Set[Gadget]:
+        return {gadget for gadget in self.gadgets if gadget.enabled}
 
 @dataclass
 class Config:
@@ -133,7 +134,7 @@ class Config:
         self.gadgets = Gadgets()
 
         for name, gadget in unarmed_gadgets.items():
-            self.gadgets.append(
+            self.gadgets.add(
                 Gadget(
                     name=name,
                     aliases=gadget.aliases,
@@ -530,14 +531,15 @@ class Config:
 
                 base = unarmed_gadgets[name]
 
-                self.gadgets.append(
+                self.gadgets.add(
                     Gadget(
-                        name=base.name,
+                        name=name,
                         aliases=base.aliases,
                         config=item.get("config", base.config),
                         enabled=item.get("enabled", False),
                     )
                 )
+
 
     def __iter__(self):
         return iter(self.fields)

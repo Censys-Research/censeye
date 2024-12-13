@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+import logging
 
 from censeye.gadget import QueryGeneratorGadget
 
@@ -32,13 +33,13 @@ class OpenDirectoryGadget(QueryGeneratorGadget):
             and not len(file) < self.config["min_chars"]
         )
 
-    def _parse_files(self, body: str) -> set[str]:
+    def _parse_files(self, body: str) -> list[str]:
         parser = BeautifulSoup(body, "html.parser")
-        files: set[str] = set()
+        files: list[str] = list()
         for a_tag in parser.find_all("a", href=True):
             href: str = a_tag["href"]
             if self._valid_file(href):
-                files.add(href)
+                files.append(href)
         return files
 
     def generate_query(self, host: dict) -> set[tuple[str, str]] | None:
@@ -55,6 +56,7 @@ class OpenDirectoryGadget(QueryGeneratorGadget):
 
             for file in files:
                 if len(queries) >= self.config["max_files"]:
+                    logging.debug(f"[open-dir] Reached max files for {host['ip']}")
                     break
 
                 queries.add(

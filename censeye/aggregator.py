@@ -164,7 +164,6 @@ class Aggregator:
 
     def _cache_file(self, q):
         m = hashlib.md5(q.encode()).hexdigest()
-
         return os.path.join(self.cache_dir, f"{m}.pkl") if self.cache_dir else None
 
     def _load_from_cache(self, q):
@@ -177,8 +176,8 @@ class Aggregator:
         return None
 
     def _save_to_cache(self, q, res):
-        logging.debug(f"Saving cache for query: {q}")
         cache_file = self._cache_file(q)
+        logging.debug(f"Saving cache for query: {q} {cache_file}")
 
         if cache_file:
             with open(cache_file, "wb") as f:
