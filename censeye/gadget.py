@@ -9,8 +9,8 @@ GADGET_NAMESPACE = "gadget.censeye"
 
 
 class Gadget(ABC):
-    short_name: str
-    long_name: str | None
+    name: str
+    aliases: list[str]
     cache_dir: str
     config: Dict[str, Any] = {}
 
@@ -18,12 +18,12 @@ class Gadget(ABC):
 
     def __init__(
         self,
-        short_name: str,
-        long_name: str | None = None,
+        name: str,
+        aliases: list[str] = [],
         config: Dict[str, Any] = {},
     ):
-        self.short_name = short_name
-        self.long_name = long_name
+        self.name = name
+        self.aliases = aliases
         self.cache_dir = self.get_cache_dir()
         self.config = config
 
@@ -34,12 +34,11 @@ class Gadget(ABC):
     def set_config(self, config: Dict[str, Any] | None) -> None:
         self.config = config or self.config
 
-    # Helper methods
     def get_env(self, key: str, default=None):
         return os.getenv(key, default)
 
     def get_cache_dir(self) -> str:
-        cache_dir = user_cache_dir(f"censys/{self.short_name}")
+        cache_dir = user_cache_dir(f"censys/{self.name}")
         os.makedirs(cache_dir, exist_ok=True)
         return cache_dir
 
@@ -58,7 +57,7 @@ class Gadget(ABC):
             json.dump(data, f)
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}({self.short_name})"
+        return f"{self.__class__.__name__}({self.name})"
 
     def __repr__(self) -> str:
         return str(self)
