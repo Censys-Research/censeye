@@ -20,11 +20,13 @@ class Gadget(ABC):
         self,
         name: str,
         aliases: list[str] = [],
-        config: Dict[str, Any] = {},
+        config: Dict[str, Any] | None = None,
     ):
         self.name = name
         self.aliases = aliases
         self.cache_dir = self.get_cache_dir()
+        if not config:
+            config = dict()
         self.config = config
 
     @abstractmethod
