@@ -15,13 +15,13 @@
    * [Gadgets](#gadgets)
       * [Query Generators](#query-generators)
       * [Host Labelers](#host-labelers)
+      * [Developing New Gadgets](#developing-new-gadgets)
    * [Configuration](#configuration)
       * [Configuring Rarity](#configuring-rarity)
       * [Configuring Fields](#configuring-fields)
          * [Ignoring field values](#ignoring-field-values)
          * [Field weights](#field-weights)
          * [Value-only fields](#value-only-fields)
-      * [Developing New Gadgets](#developing-new-gadgets)
    * [Workspaces](#workspaces)
    * [Contributing](#contributing)
       * [Developer Setup](#developer-setup)
@@ -278,8 +278,13 @@ Query Generator gadgets are used to generate additional queries for reporting an
 
 Currently, there are two query generator gadgets included with Censeye: 
 
-- "open-directory": This gadget will parse out file names in HTTP response bodies from the Censys host result that have a known open-directory. These filenames will then be expanded to a proper Censys query (e.g., `services:(labels=open-dir and http.response.body='*$FILENAME*')`) to find other open-dictories on other hosts.
-- "nobbler": This gadget will look at `UNKNOWN` services and generate one or more queries that attempt to find other hosts with the same banner, but at different offsets. The idea that many unknown responses will contain some binary protocol where there may be a header or some common element at the start of the response, but the actual data may be dynamic. 
+![open-directory example](./static/gadget_open_dir.png)
+
+"open-directory": This gadget will parse out file names in HTTP response bodies from the Censys host result that have a known open-directory. These filenames will then be expanded to a proper Censys query (e.g., `services:(labels=open-dir and http.response.body='*$FILENAME*')`) to find other open-dictories on other hosts.
+
+![nobbler example](./static/gadget_nobbler.png)
+
+"nobbler": This gadget will look at `UNKNOWN` services and generate one or more queries that attempt to find other hosts with the same banner, but at different offsets. The idea that many unknown responses will contain some binary protocol where there may be a header or some common element at the start of the response, but the actual data may be dynamic. 
 
 ### Host Labelers
 
@@ -290,6 +295,9 @@ Currently, there are two host labeler gadgets included with Censeye:
 - "virustotal" : This gadget will query the VirusTotal API for the IP address and add the results as a label to the host data.
 - "threatfox" : This gadget will query the ThreatFox API for the IP address and add the results as a label to the host data.
 
+### Developing New Gadgets
+
+There are several good examples in `./censeye/gadgets` that can be used as a template for developing new gadgets. The `open-directory` gadget is a good example of a query generator, and the `virustotal` gadget is a good example of a host labeler.
 
 ## Configuration
 
@@ -403,9 +411,6 @@ In this case, if a host includes the `services.tls.certificates.leaf_data.subjec
 
 The idea is to determine the number of hosts where that value is found anywhere in the data, not just within the specific field itself.
 
-### Developing New Gadgets
-
-There are several good examples in `./censeye/gadgets` that can be used as a template for developing new gadgets. The `open-directory` gadget is a good example of a query generator, and the `virustotal` gadget is a good example of a host labeler.
 
 ## Workspaces
 
