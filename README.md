@@ -1,5 +1,6 @@
 # Contents
 
+* [Contents](#contents)
 * [Censeye](#censeye)
    * [Introduction](#introduction)
    * [Setup](#setup)
@@ -11,6 +12,10 @@
    * [Historical Certificates](#historical-certificates)
    * [Query Prefix Filtering](#query-prefix-filtering)
    * [Saving reports](#saving-reports)
+   * [Gadgets](#gadgets)
+      * [Query Generators](#query-generators)
+      * [Host Labelers](#host-labelers)
+      * [Developing New Gadgets](#developing-new-gadgets)
    * [Configuration](#configuration)
       * [Configuring Rarity](#configuring-rarity)
       * [Configuring Fields](#configuring-fields)
@@ -18,6 +23,8 @@
          * [Field weights](#field-weights)
          * [Value-only fields](#value-only-fields)
    * [Workspaces](#workspaces)
+   * [Contributing](#contributing)
+      * [Developer Setup](#developer-setup)
 
 # Censeye
 
@@ -112,7 +119,8 @@ Options:
                                   (see configuration)
   --fast                          [auto-pivoting] alias for --min-pivot-weight 1.0
   --slow                          [auto-pivoting] alias for --min-pivot-weight 0.0
-  -P, --plugin TEXT               list of plugins to load
+  -G, --gadget TEXT               list of gadgets to load
+  --list-gadgets                  list available gadgets
   --version                       Show the version and exit.
   -h, --help                      Show this message and exit.
 ```
@@ -207,7 +215,62 @@ If you wish to save the report as an HTML file, simply pass the `--save` flag wi
 
 ## Gadgets
 
-Censeye "Gadgets" are bits of code that extend Censeye in two ways (currently): Query Generators, and Host Lableers.
+Censeye "Gadgets" are bits of code that extend Censeye in two ways (currently): Query Generators, and Host Lableers. By default, all of the loaded gadgets are disabled, and can be enabled with the `--gadget` flag, or by adding them to the configuration file.
+
+```yaml
+gadgets:
+  - gadget: open-directory
+    enabled: true 
+  - gadget: nobbler
+    enabled: true 
+  - gadget: virustotal
+    enabled: true 
+  - gadget: threatfox
+    enabled: true 
+```
+
+A list of gadgets and their underlying documentation may be viewed with the `--list-gadgets` flag.
+
+```shell
+~$ censeye --list-gadgets
+  name           │ aliases        │ desc                                                                                                                 
+ ════════════════╪════════════════╪═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ 
+  open-directory │ odir, open-dir │ When a service is found with an open directory listing, this gadget will attempt to parse out the file names from    
+                 │                │ the HTTP response body and generate queries for each file found.                                                     
+                 │                │                                                                                                                      
+                 │                │ This is useful for finding additional hosts with the same specific files.                                            
+                 │                │                                                                                                                      
+                 │                │ Configuration                                                                                                        
+                 │                │  - max_files: The maximum number of files to generate queries for.                                                   
+                 │                │    default: 32                                                                                                       
+                 │                │  - min_chars: The minimum number of characters a file name must have to be considered.                               
+                 │                │    default: 2                                                                                                        
+                 │                │                                                                                                                      
+  threatfox      │ tf             │ Gadget to label hosts that are present in ThreatFox.                                                                 
+  virustotal     │ vt             │ A simple VirusTotal API client which will label the host if it is found to be malicious.                             
+                 │                │                                                                                                                      
+                 │                │     Configuration:                                                                                                   
+                 │                │      - VT_API_KEY: *ENVVAR* VirusTotal API key                                                                       
+                 │                │                                                                                                                      
+  nobbler        │ nob, nblr      │ When the service_name is UNKNOWN, it is often more effective to search the first N bytes of the response rather      
+                 │                │ than analyzing the entire response.                                                                                  
+                 │                │                                                                                                                      
+                 │                │ Many services include a fixed header or a "magic number" at the beginning of their responses, followed by dynamic    
+                 │                │ data at a later offset. This feature generates queries that focus on the initial N bytes of the response at various  
+                 │                │ offsets while using wildcards for the remaining data.                                                                
+                 │                │                                                                                                                      
+                 │                │ The goal is to make the search more generalizable: analyzing the full UNKNOWN response might only match a specific   
+                 │                │ host, whereas examining just the initial N bytes is likely to match similar services across multiple hosts.          
+                 │                │                                                                                                                      
+                 │                │ Configuration:                                                                                                       
+                 │                │  - iterations: A list of integers specifying the number of bytes to examine at the start of the response.            
+                 │                │  - default: [4, 8, 16, 32]                                                                                           
+                 │                │    - services.banner_hex=XXXXXXXX*                                                                                   
+                 │                │    - services.banner_hex=XXXXXXXXXXXXXXXX*                                                                           
+                 │                │    - services.banner_hex=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*                                                           
+                 │                │    - services.banner_hex=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*                           
+```
+
 
 ### Query Generators
 
@@ -215,9 +278,26 @@ Query Generator gadgets are used to generate additional queries for reporting an
 
 Currently, there are two query generator gadgets included with Censeye: 
 
-- "open-directory": This gadget will parse out file names in HTTP response bodies from the Censys host result that have a known open-directory. These filenames will then be expanded to a proper Censys query (e.g., `services:(labels=open-dir and http.response.body='*$FILENAME*')`) to find other open-dictories on other hosts.
-- "nobbler": This gadget will look at `UNKNOWN` services and generate one or more queries that attempt to find other hosts with the same banner, but at different offsets. The idea that many unknown responses will contain some binary protocol where there may be a header or some common element at the start of the response, but the actual data may be dynamic. 
+![open-directory example](./static/gadget_open_dir.png)
 
+"open-directory": This gadget will parse out file names in HTTP response bodies from the Censys host result that have a known open-directory. These filenames will then be expanded to a proper Censys query (e.g., `services:(labels=open-dir and http.response.body='*$FILENAME*')`) to find other open-dictories on other hosts.
+
+![nobbler example](./static/gadget_nobbler.png)
+
+"nobbler": This gadget will look at `UNKNOWN` services and generate one or more queries that attempt to find other hosts with the same banner, but at different offsets. The idea that many unknown responses will contain some binary protocol where there may be a header or some common element at the start of the response, but the actual data may be dynamic. 
+
+### Host Labelers
+
+Host Labeler gadgets are used to add additional labels to the host data.
+
+Currently, there are two host labeler gadgets included with Censeye:
+
+- "virustotal" : This gadget will query the VirusTotal API for the IP address and add the results as a label to the host data.
+- "threatfox" : This gadget will query the ThreatFox API for the IP address and add the results as a label to the host data.
+
+### Developing New Gadgets
+
+There are several good examples in `./censeye/gadgets` that can be used as a template for developing new gadgets. The `open-directory` gadget is a good example of a query generator, and the `virustotal` gadget is a good example of a host labeler.
 
 ## Configuration
 
@@ -331,38 +411,6 @@ In this case, if a host includes the `services.tls.certificates.leaf_data.subjec
 
 The idea is to determine the number of hosts where that value is found anywhere in the data, not just within the specific field itself.
 
-### Developing New Gadgets
-
-Censeye supports plugins that can be loaded via the `--plugin` argument. These plugins are Python files that contain a class that inherits from `censeye.plugin.Plugin`. The plugin class must implement the `run` method, which is called with the host data as an argument. The plugin can then modify the host data as needed.
-
-For example, the following plugin will add a new field to the host data:
-
-```python
-# my_plugin.py
-from censeye.plugin import Plugin
-
-class MyPlugin(Plugin):
-    def __init__(self):
-        super().__init__("my-plugin")
-
-    def run(self, host):
-        ip = host['ip']
-        # Do something with the host data
-        # Labels use rich text formatting (https://rich.readthedocs.io/en/latest/console.html#color-systems)
-        host['labels'].append('[bold red]my-label[/bold red]')
-
-# Register the plugin
-__plugin__ = MyPlugin()
-```
-
-To use this plugin, save it to a file (e.g., `my_plugin.py`) and run Censeye with the `--plugin` argument:
-
-```shell
-# Use the plugin
-$ censeye --plugin my-plugin 1.1.1.1
-# Use multiple plugins
-$ censeye --plugin my-plugin --plugin another-plugin 1.1.1.1
-```
 
 ## Workspaces
 

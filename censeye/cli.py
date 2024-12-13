@@ -325,6 +325,9 @@ async def run_censeye(
     multiple=True,
     help="list of gadgets to load",
 )
+@click.option(
+    "--list-gadgets", is_flag=True, help="list available gadgets"
+)
 @click.version_option(__version__)
 def main(
     ip,
@@ -344,8 +347,8 @@ def main(
     fast,
     slow,
     gadget,
+    list_gadgets,
 ):
-
     if sum([fast, slow]) > 1:
         print("Only one of --fast or --slow can be set.")
         sys.exit(1)
@@ -412,6 +415,18 @@ def main(
         )
 
     console = Console(record=True, soft_wrap=True)
+
+    if list_gadgets:
+        table = Table(title="available gadgets", box=box.MINIMAL_DOUBLE_HEAD)
+        table.add_column("name", no_wrap=True)
+        table.add_column("aliases", no_wrap=True)
+        table.add_column("desc", no_wrap=False)
+
+        for name, g in unarmed_gadgets.items():
+            table.add_row(f"[bold]{name}[/bold]", f"[i]{', '.join(g.aliases)}[/i]", g.__doc__)
+
+        console.print(table)
+        sys.exit(0)
 
     async def _run_worker(queue):
         while not queue.empty():

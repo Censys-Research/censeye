@@ -4,8 +4,6 @@ from censeye.gadget import HostLabelerGadget
 
 
 class VT:
-    """silly little VT client"""
-
     def __init__(self, key):
         self.key = key
 
@@ -20,8 +18,13 @@ class VT:
 
 
 class VTGadget(HostLabelerGadget):
+    """A simple VirusTotal API client which will label the host if it is found to be malicious.
+
+    Configuration:
+     - VT_API_KEY: *ENVVAR* VirusTotal API key
+    """
     def __init__(self):
-        super().__init__("vt", "virustotal")
+        super().__init__("virustotal", aliases=["vt"])
         self.api_key = self.get_env("VT_API_KEY")
 
     def is_malicious(self, response: dict):
@@ -47,7 +50,6 @@ class VTGadget(HostLabelerGadget):
             response = vt.fetch_ip(ip)
             self.save_json(cache_file, response)
 
-        # Check if the host is malicious
         if self.is_malicious(response):
             self.add_label(
                 host,
