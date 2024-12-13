@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
+from .gadgets import unarmed_gadgets
+
 IgnoreType = Optional[Union[List[str], List[Dict[str, List[str]]]]]
 
 
@@ -29,7 +31,7 @@ class Field:
 class Gadget:
     name: str
     config: Dict[str, Any]
-    short_name: str = ""
+    aliases: List[str] = field(default_factory=list)
     enabled: bool = False
 
     def __hash__(self) -> int:
@@ -84,7 +86,7 @@ class Gadgets:
 
     def enable(self, name: str):
         for _gadget in self.gadgets:
-            if _gadget.name == name or _gadget.short_name == name:
+            if _gadget.name == name or name in _gadget.aliases:
                 _gadget.enabled = True
                 return
 
@@ -92,7 +94,7 @@ class Gadgets:
 
     def disable(self, name: str):
         for _gadget in self.gadgets:
-            if _gadget.name == name:
+            if _gadget.name == name or name in _gadget.aliases:
                 _gadget.enabled = False
                 return
 
@@ -128,25 +130,23 @@ class Config:
         self.min_host_count = 2
         self.max_host_count = 120
         self.min_pivot_weight = 0.0
+        self.gadgets = Gadgets()
 
-        self.gadgets = Gadgets(
-            [
-                Gadget(name="open-directory", config={"max_files": 32, "min_chars": 1}),
-                Gadget(name="nobbler", config={"iterations": [4, 8, 16, 32]}),
-                Gadget(name="virustotal", config={}, short_name="vt", enabled=False),
-                Gadget(name="threatfox", config={}, short_name="tf", enabled=False),
-            ]
-        )
+        for name, gadget in unarmed_gadgets.items():
+            self.gadgets.append(
+                Gadget(
+                    name=name,
+                    aliases=gadget.aliases,
+                    config=gadget.config,
+                    enabled=False,
+                )
+            )
 
         self.fields = [
-            Field(
-                name="virus-total.gadget.censeye", weight=1.0, ignore=[]),
-            Field(
-                name="open-directory.gadget.censeye", weight=1.0, ignore=[]
-            ),  # for the opendirectory gadget
-            Field(
-                name="nobbler.gadget.censeye", weight=0.8, ignore=[]
-            ),  # for the byte-nobbler gadget
+            # Field definitions for the query generator gadgets (if enabled), so we can use them for pivots
+            Field(name="open-directory.gadget.censeye", weight=1.0, ignore=[]),
+            Field(name="nobbler.gadget.censeye", weight=0.8, ignore=[]),
+            # Field definitions for the search results
             Field(name="services.banner_hex", weight=1.0, ignore=[]),
             Field(name="services.ssh.endpoint_id.raw", weight=0.9, ignore=[]),
             Field(
@@ -357,12 +357,22 @@ class Config:
                 weight=0.1,
                 ignore=[],
             ),
+            Field(name="services.cobalt_strike.x86.watermark", weight=1.0, ignore=[]),
+            Field(name="services.cobalt_strike.x86.public_key", weight=1.0, ignore=[]),
             Field(name="services.cobalt_strike.x86.post_ex.x86", weight=0.1, ignore=[]),
             Field(name="services.cobalt_strike.x86.post_ex.x64", weight=0.1, ignore=[]),
             Field(
                 name="services.cobalt_strike.x86.http_post.uri", weight=1.0, ignore=[]
             ),
             Field(name="services.cobalt_strike.x86.user_agent", weight=1.0, ignore=[]),
+            Field(name="services.cobalt_strike.x64.watermark", weight=1.0, ignore=[]),
+            Field(name="services.cobalt_strike.x64.public_key", weight=1.0, ignore=[]),
+            Field(name="services.cobalt_strike.x64.post_ex.x86", weight=0.1, ignore=[]),
+            Field(name="services.cobalt_strike.x64.post_ex.x64", weight=0.1, ignore=[]),
+            Field(
+                name="services.cobalt_strike.x64.http_post.uri", weight=1.0, ignore=[]
+            ),
+            Field(name="services.cobalt_strike.x64.user_agent", weight=1.0, ignore=[]),
             Field(
                 name="services.cwmp.http_info.favicons.md5_hash", weight=0.5, ignore=[]
             ),
@@ -513,10 +523,18 @@ class Config:
         if "gadgets" in cfg:
             self.gadgets = Gadgets()
             for item in cfg["gadgets"]:
+                name = item["gadget"]
+
+                if name not in unarmed_gadgets:
+                    raise ValueError(f"Gadget {name} not found")
+
+                base = unarmed_gadgets[name]
+
                 self.gadgets.append(
                     Gadget(
-                        name=item["gadget"],
-                        config=item.get("config", {}),
+                        name=base.name,
+                        aliases=base.aliases,
+                        config=item.get("config", base.config),
                         enabled=item.get("enabled", False),
                     )
                 )

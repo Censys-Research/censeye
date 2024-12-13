@@ -136,8 +136,10 @@ class ThreatFoxClient:
 
 
 class ThreatFoxGadget(HostLabelerGadget):
+    """Gadget to label hosts that are present in ThreatFox."""
+
     def __init__(self):
-        super().__init__("tf", "threatfox")
+        super().__init__("threatfox", aliases=["tf"])
         self.api_key = self.get_env("THREATFOX_API_KEY")
 
     def label_host(self, host: dict) -> None:

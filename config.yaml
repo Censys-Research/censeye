@@ -194,6 +194,10 @@ fields:
     weight: 0.0
   - field: services.parsed.chromecast.applications.display_name
     weight: 0.1
+  - field: services.cobalt_strike.x86.watermark
+    weight: 1.0
+  - field: services.cobalt_strike.x86.public_key
+    weight: 1.0
   - field: services.cobalt_strike.x86.post_ex.x86
     weight: 0.1
   - field: services.cobalt_strike.x86.post_ex.x64
@@ -201,6 +205,18 @@ fields:
   - field: services.cobalt_strike.x86.http_post.uri
     weight: 1.0
   - field: services.cobalt_strike.x86.user_agent
+    weight: 1.0
+  - field: services.cobalt_strike.x64.watermark
+    weight: 1.0
+  - field: services.cobalt_strike.x64.public_key
+    weight: 1.0
+  - field: services.cobalt_strike.x64.post_ex.x86
+    weight: 0.1
+  - field: services.cobalt_strike.x64.post_ex.x64
+    weight: 0.1
+  - field: services.cobalt_strike.x64.http_post.uri
+    weight: 1.0
+  - field: services.cobalt_strike.x64.user_agent
     weight: 1.0
   - field: services.cwmp.http_info.favicons.md5_hash
     weight: 0.5
