@@ -68,7 +68,7 @@ class HostLabelerGadget(Gadget):
     def label_host(self, host: dict) -> None:
         pass
 
-    def run(self, host: dict) -> None:
+    def run(self, host: dict) -> Any:
         self.label_host(host)
 
     def add_label(
@@ -88,10 +88,10 @@ class QueryGeneratorGadget(Gadget):
 
     def run(self, host: dict) -> set[tuple[str, str]] | None:
         ret = set()
-        q = self.generate_query(host)
 
+        q = self.generate_query(host)
         if not q:
-            return None
+            return
 
         for k, v in q:
             if not k.endswith(self.Namespace):
