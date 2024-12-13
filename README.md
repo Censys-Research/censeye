@@ -1,6 +1,5 @@
 # Contents
 
-* [Contents](#contents)
 * [Censeye](#censeye)
    * [Introduction](#introduction)
    * [Setup](#setup)
@@ -22,6 +21,9 @@
          * [Ignoring field values](#ignoring-field-values)
          * [Field weights](#field-weights)
          * [Value-only fields](#value-only-fields)
+      * [Configuring Gadgets](#configuring-gadgets)
+         * [Open Directory Gadget Configuration](#open-directory-gadget-configuration)
+         * [Nobbler Gadget Configuration](#nobbler-gadget-configuration)
    * [Workspaces](#workspaces)
    * [Contributing](#contributing)
       * [Developer Setup](#developer-setup)
@@ -411,6 +413,40 @@ In this case, if a host includes the `services.tls.certificates.leaf_data.subjec
 
 The idea is to determine the number of hosts where that value is found anywhere in the data, not just within the specific field itself.
 
+### Configuring Gadgets
+
+Each gadget has its own set of configuration directives which can also be manipulated in the configuration file under the `gadgets` directive. The following is the format of this:
+
+```yaml
+gadgets:
+  - gadget: <GADGET_NAME>
+    enabled: <TRUE|FALSE>
+    config:
+      <GADGET_SPECIFIC_CONFIGURATION>
+```
+
+If the gadget is a query generator, this means that it can be used for auto-pivoting, and must have a configured field and weight, just like real fields. Gadgets are given the namespace `<GADGET_NAME>.gadget.censeye`, so a field configuration for the `open-directory` gadget would look like this:
+
+```yaml
+fields:
+  - field: open-directory.gadget.censeye
+    weight: 1.0
+```
+
+Note that you can leave the `enabled` directive to `false` and enable the gadget with the `--gadget` flag while maintaining the configuration in the configuration file.
+
+#### Open Directory Gadget Configuration
+
+The `open-directory` gadget has two configuration options:
+
+- `max_files`: The maximum number of files to generate queries for. Default: `32`
+- `min_chars`: The minimum number of characters a file name must have to be considered. Default: `2`
+
+#### Nobbler Gadget Configuration
+
+The `nobbler` gadget has one configuration option:
+
+- `iterations`: A list of integers specifying the number of bytes to examine at the start of the response. Default: `[4, 8, 16, 32]
 
 ## Workspaces
 
