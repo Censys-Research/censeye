@@ -13,9 +13,11 @@ from rich.style import Style
 from rich.table import Table
 from rich.tree import Tree
 
-from . import censeye, vt
+from . import censeye
 from .__version__ import __version__
 from .config import Config
+from .gadget import Gadget, GADGET_NAMESPACE
+from .gadgets import unarmed_gadgets
 
 
 async def run_censeye(
@@ -26,9 +28,10 @@ async def run_censeye(
     at_time=None,
     query_prefix=None,
     duo_reporting=False,
-    use_vt=False,
     config=Config(),
+    gadgets: set[Gadget] = set(),
 ):
+
     if cache_dir is None:
         cache_dir = user_cache_dir("censys/censeye")
         logging.debug(f"Using cache dir: {cache_dir}")
@@ -40,6 +43,7 @@ async def run_censeye(
         query_prefix=query_prefix,
         duo_reporting=duo_reporting,
         config=config,
+        armed_gadgets=gadgets,
     )
 
     result, searches = await c.run(ip)
@@ -48,10 +52,8 @@ async def run_censeye(
 
     # TODO: make these configurable, e.g., themes.
     style_bold = Style(bold=True)
-    style_odir = Style(bold=False, color="#5696CC")
-    style_odir_bold = Style(bold=True, color="#9FC3E2")
-
-    vtc = vt.VT()
+    style_gadget = Style(bold=False, color="#5696CC")
+    style_gadget_bold = Style(bold=True, color="#9FC3E2")
 
     for host in result:
         if host["ip"] in seen_hosts:
@@ -62,13 +64,6 @@ async def run_censeye(
             # these are just empty anyway.
             continue
 
-        in_vt = False
-
-        if use_vt:
-            in_vt = vtc.is_malicious(host["ip"])
-            if in_vt:
-                host["labels"].append("[bold red]in-virustotal[/bold red]")
-
         sres = sorted(host["report"], key=lambda x: x["hosts"], reverse=True)
         link = f"https://search.censys.io/hosts/{host['ip']}"
 
@@ -78,7 +73,7 @@ async def run_censeye(
                     host["at_time"].isoformat(timespec="milliseconds") + "Z"
                 )
                 link = f"{link}?at_time={at_encoded}"
-            except:
+            except Exception:
                 pass
 
         title = f"[link={link}]{host['ip']}[/link] (depth: {host['depth']}) (Via: {host['parent_ip']} -- {host['found_via']} -- {host['labels']})"
@@ -135,8 +130,8 @@ async def run_censeye(
                     r["hosts"] <= config.max_host_count
                     and (r["hosts"] + hist_count) > 1
                 ):
-                    if r["key"] == "open-directory":
-                        row_style = style_odir_bold
+                    if r["key"].endswith(f".{GADGET_NAMESPACE}"):
+                        row_style = style_gadget_bold
                     else:
                         row_style = style_bold
 
@@ -145,8 +140,8 @@ async def run_censeye(
                     else:
                         count_col = f"{host_count}"
                 else:
-                    if r["key"] == "open-directory":
-                        row_style = style_odir
+                    if r["key"].endswith(f".{GADGET_NAMESPACE}"):
+                        row_style = style_gadget
                     count_col = f"{host_count}"
 
                 if "noprefix_hosts" in r:
@@ -231,7 +226,7 @@ async def run_censeye(
         tree = Tree(f"[link=https://search.censys.io/hosts/{root}][b]{root}[/b][/link]")
         _build_tree(root, tree)
 
-        console.print(f"Pivot Tree:")
+        console.print("Pivot Tree:")
         console.print(tree)
 
     console.print(f"Total queries used: {c.get_num_queries()}")
@@ -304,7 +299,6 @@ async def run_censeye(
     default=False,
     help="If the --query-prefix is set, this will return a count of hosts for both the filtered and unfiltered results.",
 )
-@click.option("--vt", is_flag=True, default=False, help="Lookup IPs in VirusTotal")
 @click.option(
     "--config",
     "-c",
@@ -325,6 +319,15 @@ async def run_censeye(
 @click.option(
     "--slow", is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 0.0"
 )
+@click.option(
+    "--gadget",
+    "-G",
+    multiple=True,
+    help="list of gadgets to load",
+)
+@click.option(
+    "--list-gadgets", is_flag=True, help="list available gadgets"
+)
 @click.version_option(__version__)
 def main(
     ip,
@@ -339,13 +342,13 @@ def main(
     query_prefix,
     input_workers,
     query_prefix_count,
-    vt,
     cfgfile_,
     min_pivot_weight,
     fast,
     slow,
+    gadget,
+    list_gadgets,
 ):
-
     if sum([fast, slow]) > 1:
         print("Only one of --fast or --slow can be set.")
         sys.exit(1)
@@ -370,8 +373,28 @@ def main(
     if slow:
         cfg.min_pivot_weight = 0.0
 
+    for g in gadget:
+        cfg.gadgets.enable(g)
+
+    armed_gadgets = set()
+
+    for g in cfg.gadgets.enabled():
+        if g.name not in unarmed_gadgets:
+            raise ValueError(f"gadget {g} not loaded!")
+
+        loaded_gadget = unarmed_gadgets[g.name]
+        loaded_gadget.config = g.config
+        armed_gadgets.add(loaded_gadget)
+
     def _parse_ip(d):
-        return d.replace("[.]", ".").replace('"', "").replace(",", "").strip()
+        period_replacements = ["[.]", ".]", "[."]
+        remove = ['"', ","]
+
+        for r in period_replacements:
+            d = d.replace(r, ".")
+        for r in remove:
+            d = d.replace(r, "")
+        return d.strip()
 
     logging.captureWarnings(True)
 
@@ -382,14 +405,28 @@ def main(
             raise ValueError(f"Invalid log level: {log_level}")
 
         logging.basicConfig(
-            level=llevel, format="%(asctime)s - %(levelname)s - %(message)s"
+            level=llevel,
+            format="%(asctime)s [%(filename)s:%(lineno)d] - %(levelname)s - %(message)s",
         )
     else:
         logging.basicConfig(
-            level=logging.CRITICAL, format="%(asctime)s - %(levelname)s - %(message)s"
+            level=logging.CRITICAL,
+            format="%(asctime)s [%(filename)s:%(lineno)d] - %(levelname)s - %(message)s",
         )
 
     console = Console(record=True, soft_wrap=True)
+
+    if list_gadgets:
+        table = Table(title="available gadgets", box=box.MINIMAL_DOUBLE_HEAD)
+        table.add_column("name", no_wrap=True)
+        table.add_column("aliases", no_wrap=True)
+        table.add_column("desc", no_wrap=False)
+
+        for name, g in unarmed_gadgets.items():
+            table.add_row(f"[bold]{name}[/bold]", f"[i]{', '.join(g.aliases)}[/i]", g.__doc__)
+
+        console.print(table)
+        sys.exit(0)
 
     async def _run_worker(queue):
         while not queue.empty():
@@ -405,8 +442,8 @@ def main(
                 at_time=at_time,
                 depth=depth,
                 console=console,
-                use_vt=vt,
                 config=cfg,
+                gadgets=armed_gadgets,
             )
             queue.task_done()
 
@@ -436,8 +473,8 @@ def main(
                 at_time=at_time,
                 depth=depth,
                 console=console,
-                use_vt=vt,
                 config=cfg,
+                gadgets=armed_gadgets,
             )
         )
 

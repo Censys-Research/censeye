@@ -1,9 +1,11 @@
 import os
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
-import warnings
 
 import yaml
+
+from .gadgets import unarmed_gadgets
 
 IgnoreType = Optional[Union[List[str], List[Dict[str, List[str]]]]]
 
@@ -26,6 +28,83 @@ class Field:
 
 
 @dataclass
+class Gadget:
+    name: str
+    config: Dict[str, Any]
+    aliases: List[str] = field(default_factory=list)
+    enabled: bool = False
+
+    def __hash__(self) -> int:
+        return hash(self.name)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+@dataclass
+class Gadgets:
+    def __init__(self, gadgets: List[Gadget] = []) -> None:
+        self.gadgets = gadgets
+
+    def __iter__(self):
+        return iter(self.gadgets)
+
+    def __getitem__(self, key):
+        for _gadget in self.gadgets:
+            if _gadget == key:
+                return _gadget
+        return None
+
+    def __contains__(self, key):
+        for _gadget in self.gadgets:
+            if _gadget == key:
+                return True
+        return False
+
+    def __len__(self):
+        return len(self.gadgets)
+
+    def __str__(self):
+        return str(self.gadgets)
+
+    def __repr__(self):
+        return repr(self.gadgets)
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Gadgets):
+            return self.gadgets == other.gadgets
+        return False
+
+    def __hash__(self) -> int:
+        return hash(self.gadgets)
+
+    def append(self, gadget: Gadget):
+        self.gadgets.append(gadget)
+
+    def extend(self, gadgets: List[Gadget]):
+        self.gadgets.extend(gadgets)
+
+    def enable(self, name: str):
+        for _gadget in self.gadgets:
+            if _gadget.name == name or name in _gadget.aliases:
+                _gadget.enabled = True
+                return
+
+        raise ValueError(f"Gadget {name} not found")
+
+    def disable(self, name: str):
+        for _gadget in self.gadgets:
+            if _gadget.name == name or name in _gadget.aliases:
+                _gadget.enabled = False
+                return
+
+        raise ValueError(f"Gadget {name} not found")
+
+    def enabled(self) -> List[Gadget]:
+        return [gadget for gadget in self.gadgets if gadget.enabled]
+
+
+@dataclass
 class Config:
     def __init__(self, config_file=None) -> None:
         self._load_defauts()
@@ -44,15 +123,30 @@ class Config:
             except FileNotFoundError:
                 pass
 
-    def _load_defauts(self):
+    def _load_defauts(self) -> None:
         self.workers = 2
         self.max_serv_count = 20
         self.max_search_res = 45
         self.min_host_count = 2
         self.max_host_count = 120
         self.min_pivot_weight = 0.0
+        self.gadgets = Gadgets()
+
+        for name, gadget in unarmed_gadgets.items():
+            self.gadgets.append(
+                Gadget(
+                    name=name,
+                    aliases=gadget.aliases,
+                    config=gadget.config,
+                    enabled=False,
+                )
+            )
 
         self.fields = [
+            # Field definitions for the query generator gadgets (if enabled), so we can use them for pivots
+            Field(name="open-directory.gadget.censeye", weight=1.0, ignore=[]),
+            Field(name="nobbler.gadget.censeye", weight=0.8, ignore=[]),
+            # Field definitions for the search results
             Field(name="services.banner_hex", weight=1.0, ignore=[]),
             Field(name="services.ssh.endpoint_id.raw", weight=0.9, ignore=[]),
             Field(
@@ -263,12 +357,22 @@ class Config:
                 weight=0.1,
                 ignore=[],
             ),
+            Field(name="services.cobalt_strike.x86.watermark", weight=1.0, ignore=[]),
+            Field(name="services.cobalt_strike.x86.public_key", weight=1.0, ignore=[]),
             Field(name="services.cobalt_strike.x86.post_ex.x86", weight=0.1, ignore=[]),
             Field(name="services.cobalt_strike.x86.post_ex.x64", weight=0.1, ignore=[]),
             Field(
                 name="services.cobalt_strike.x86.http_post.uri", weight=1.0, ignore=[]
             ),
             Field(name="services.cobalt_strike.x86.user_agent", weight=1.0, ignore=[]),
+            Field(name="services.cobalt_strike.x64.watermark", weight=1.0, ignore=[]),
+            Field(name="services.cobalt_strike.x64.public_key", weight=1.0, ignore=[]),
+            Field(name="services.cobalt_strike.x64.post_ex.x86", weight=0.1, ignore=[]),
+            Field(name="services.cobalt_strike.x64.post_ex.x64", weight=0.1, ignore=[]),
+            Field(
+                name="services.cobalt_strike.x64.http_post.uri", weight=1.0, ignore=[]
+            ),
+            Field(name="services.cobalt_strike.x64.user_agent", weight=1.0, ignore=[]),
             Field(
                 name="services.cwmp.http_info.favicons.md5_hash", weight=0.5, ignore=[]
             ),
@@ -405,6 +509,7 @@ class Config:
         self.min_host_count = cfg.get("rarity", {}).get("min", self.min_host_count)
         self.max_host_count = cfg.get("rarity", {}).get("max", self.max_host_count)
         self.min_pivot_weight = cfg.get("min_pivot_weight", self.min_pivot_weight)
+        self.gadgets = cfg.get("gadgets", self.gadgets)
 
         if "fields" in cfg:
             for item in cfg["fields"]:
@@ -415,18 +520,30 @@ class Config:
                         ignore=item.get("ignore", []),
                     )
                 )
+        if "gadgets" in cfg:
+            self.gadgets = Gadgets()
+            for item in cfg["gadgets"]:
+                name = item["gadget"]
+
+                if name not in unarmed_gadgets:
+                    raise ValueError(f"Gadget {name} not found")
+
+                base = unarmed_gadgets[name]
+
+                self.gadgets.append(
+                    Gadget(
+                        name=base.name,
+                        aliases=base.aliases,
+                        config=item.get("config", base.config),
+                        enabled=item.get("enabled", False),
+                    )
+                )
 
     def __iter__(self):
         return iter(self.fields)
 
-    def __getitem__(self, key):
-        for field in self.fields:
-            if field == key:
-                return field
+    def __getitem__(self, key) -> Field | None:
+        for _field in self.fields:
+            if _field == key:
+                return _field
         return None
-
-
-if __name__ == "__main__":
-    cfg = Config("config.yaml")
-    for field in cfg:
-        print(field)
