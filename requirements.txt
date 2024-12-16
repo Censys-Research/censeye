@@ -8,4 +8,4 @@ PyYAML==6.0.2
 PyYAML==6.0.2
 Requests==2.32.3
 rich==13.9.4
-setuptools==59.6.0
+setuptools>70.0.0
