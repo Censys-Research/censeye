@@ -3,11 +3,14 @@ import hashlib
 import logging
 import os
 import pickle
+from typing import Set
 
 from censys.search import CensysHosts
+
 from .aggregator import Aggregator
-from .const import *
 from .config import Config
+from .const import *
+from .gadget import Gadget, HostLabelerGadget
 
 
 class Censeye:
@@ -22,6 +25,7 @@ class Censeye:
         query_prefix=None,
         duo_reporting=False,
         config: Config = Config(),
+        armed_gadgets: Set[Gadget] = set(),
     ):
         self.config = config
         self.workers = config.workers
@@ -31,6 +35,7 @@ class Censeye:
             query_prefix=query_prefix,
             duo_reporting=duo_reporting,
             config=config,
+            armed_gadgets=armed_gadgets,
         )
         self.seen_hosts = set()
         self.depth = depth
@@ -44,6 +49,7 @@ class Censeye:
         self.search_buckets = dict()
         self.lock = asyncio.Lock()
         self.duo_reporting = duo_reporting
+        self.gadgets = armed_gadgets
 
         if self.cache_dir:
             os.makedirs(self.cache_dir, exist_ok=True)
@@ -142,7 +148,6 @@ class Censeye:
                 qstr,
                 per_page=per_page,
                 pages=pages,
-                at_time=self.at_time,
             )
 
             all_hosts = []
@@ -174,8 +179,21 @@ class Censeye:
 
         data = await self._get_host(ip, at_time=at_time)
 
+        for gadget in self.gadgets:
+            if not isinstance(gadget, HostLabelerGadget):
+                continue
+
+            logging.info(f"Running labeler gadget {gadget}")
+
+            try:
+                if data:
+                    gadget.run(data)
+            except Exception as e:
+                logging.error(f"Gadget {gadget} failed: {e}")
+
         async with self.lock:
             self.in_transit.remove(id)
+
         if not data:
             return
 

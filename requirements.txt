@@ -1,4 +1,6 @@
 appdirs==1.4.4
+backoff==2.2.1
+beautifulsoup4==4.12.3
 censys==2.2.16
 click==8.1.7
 python_dateutil==2.9.0.post0
@@ -6,3 +8,4 @@ PyYAML==6.0.2
 PyYAML==6.0.2
 Requests==2.32.3
 rich==13.9.4
+setuptools==59.6.0
