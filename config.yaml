@@ -25,8 +25,13 @@ gadgets:
                                  # [4] `services.banner_hex=NNNNNNNN*`
                                  # [8] `services.banner_hex=NNNNNNNNNNNNNNNN*`
                                  # etc etc..
+  # The virustotal gadget will lookup the IP address of the host in VirusTotal and adds the
+  # `in-virustotal` label to the host. This gadget will look for the `VT_API_KEY` environment
+  # variable for the API key.
   - gadget: virustotal
     enabled: false
+  # The threatfox gadget will lookup the IP address of the host in ThreatFox and adds the
+  # `in-threatfox` label to the host. This gadget will look for the `THREATFOX_API_KEY` environment
   - gadget: threatfox
     enabled: false
 
