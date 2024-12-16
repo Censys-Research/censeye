@@ -321,6 +321,7 @@ async def run_censeye(
 )
 @click.option(
     "--gadget",
+    "-g",
     "-G",
     multiple=True,
     help="list of gadgets to load",
