@@ -64,7 +64,7 @@ class ThreatFoxClient:
         giveup=fatal_code,  # type: ignore[arg-type]
     )
     def _send_request(
-        self, endpoint: str, method: str = "GET", data: Any | None = None
+        self, endpoint: str, method: str = "GET", data: Any = None
     ) -> dict:
         """
         Internal method to send requests to the API.
