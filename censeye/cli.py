@@ -17,6 +17,7 @@ from rich.tree import Tree
 from . import censeye
 from .__version__ import __version__
 from .config import Config
+from .const import DEFAULT_MAX_SEARCH_RESULTS
 from .gadget import GADGET_NAMESPACE, Gadget
 from .gadgets import unarmed_gadgets
 
@@ -276,7 +277,7 @@ async def run_censeye(
 @click.option(
     "--max-search-results",
     "-m",
-    default=censeye.DEFAULT_MAX_SEARCH_RESULTS,
+    default=DEFAULT_MAX_SEARCH_RESULTS,
     help="maximum number of censys search results to process",
 )
 @click.option(
