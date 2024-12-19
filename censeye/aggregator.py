@@ -4,12 +4,12 @@ import logging
 import os
 import pickle
 import urllib.parse
-from typing import Set
+from typing import Any, Optional
 
 from censys.search import SearchClient
 
 from .config import Config
-from .const import *
+from .const import USER_AGENT
 from .gadget import GADGET_NAMESPACE, Gadget, QueryGeneratorGadget
 
 
@@ -21,19 +21,22 @@ class Aggregator:
         cache_dir=None,
         query_prefix=None,
         duo_reporting=False,
-        config: Config = Config(),
-        armed_gadgets: Set[Gadget] = set(),
+        config: Optional[Config] = None,
+        armed_gadgets: Optional[set[Gadget]] = None,
     ):
         self.client = SearchClient(user_agent=USER_AGENT)
-        self.seen_hosts = set()
-        self.seen_queries = set()
-        self.seen_raw = dict()
+        self.seen_hosts: set[str] = set()
+        self.seen_queries: set[tuple[str, Any]] = set()
         self.cache_dir = cache_dir
         self.num_queries = 0
-        self.workers = config.workers
         self.query_prefix = query_prefix
         self.duo_reporting = duo_reporting
+        if config is None:
+            config = Config()
         self.config = config
+        self.workers = config.workers
+        if armed_gadgets is None:
+            armed_gadgets = set()
         self.gadgets = armed_gadgets
 
         if self.cache_dir:
@@ -105,7 +108,8 @@ class Aggregator:
                 if self._is_kv_filtered(header_key, val, parent_key):
                     dstr = val[:50] + "..." if len(val) > 50 else val
                     logging.debug(
-                        f"Excluding {header_key}={dstr}, it's not in our allowed header k/v's"
+                        f"Excluding {header_key}={dstr}, it's not in our allowed header"
+                        " k/v's"
                     )
                     continue
 
@@ -210,7 +214,7 @@ class Aggregator:
             )
             self._save_to_cache(fingerprint, ret)
             return ret
-        except:
+        except Exception:
             logging.warning(
                 f"Failed to fetch certificate observations for {fingerprint}"
             )
@@ -308,7 +312,8 @@ class Aggregator:
                     ret["historical_observations"] = obs
             except Exception as e:
                 logging.error(
-                    f"Failed to fetch historical observations for certificate {value}: {e}"
+                    "Failed to fetch historical observations for certificate"
+                    f" {value}: {e}"
                 )
 
         logging.debug(f"aggregate report for query: {query}, hosts: {ret['hosts']}")
@@ -326,7 +331,8 @@ class Aggregator:
             if not isinstance(gadget, QueryGeneratorGadget):
                 continue
             try:
-                if pqueries := gadget.run(host_data):
+                pqueries = gadget.run(host_data)
+                if pqueries:
                     queries.extend(pqueries)
 
             except Exception as e:

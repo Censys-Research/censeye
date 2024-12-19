@@ -1,4 +1,4 @@
-# ChangeLog 
+# ChangeLog
 
 ## 1.0.0
 
@@ -12,15 +12,15 @@
         * `virustotal`: This gadget will query the VirusTotal API for the host's IP address and label the host with the results (`in-virustotal`).
         * `threatfox`: This gadget will query the ThreatFox API for the host's IP address and label the host with the results (`in-threatfox`).
     - Query Generators:
-        * `open-directory`: When a service is found with an open directory listing, this gadget will attempt to parse out the file names from the HTTP response body and generate queries for each file found. 
+        * `open-directory`: When a service is found with an open directory listing, this gadget will attempt to parse out the file names from the HTTP response body and generate queries for each file found.
         * `nobbler`: When the `service_name` is `UNKNOWN`, it is often more effective to search the first N bytes of the response rather than analyzing the entire response. So this gadget will generate queries for the first (configurable array of offsets) N bytes of the response.
             - Check out how `nobbler` helped us identify Metasploit payloads:
 
 ```
 $ censeye --gadget nobbler 45.XXX.XXX.XX
- 
+
 45.XXX.XXX.XX (depth: 0) (Via: None --  -- ['remote-access', 'database', 'in-threatfox', 'in-virustotal'])
-     Hosts   Key                                      Val                                                                                            
+     Hosts   Key                                      Val
  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ... snip snip ...
         92   nobbler.gadget.censeye                   services.banner_hex=5748*
@@ -34,20 +34,20 @@ Here is how the `open-directory` gadget looks:
 
 ```
 80.XX.XX.XXX (depth: 0) (Via: None --  -- ['torrent', 'file-sharing', 'open-dir', 'suspicious-open-dir'])
-                                                                                                                                                                                                          
-    Hosts   Key                                                            Val                                                                                                                            
- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 
+
+    Hosts   Key                                                            Val
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  ... snip snip ...
-     1508   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*2.png*')                                                                    
-       98   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*Office/*')                                                                  
-        3   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*Filmek/*')                                                                  
-        2   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*Spotify.apk*')                                                              
-        2   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*%c3%9aj%20mappa/*')                                                         
-        1   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*Platformer%20teszt_1_1.0.apk*')                                             
-        1   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*2024-03-17_20h12_04.png*')                                                  
-        1   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*RazorEngine.zip*')                                                          
+     1508   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*2.png*')
+       98   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*Office/*')
+        3   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*Filmek/*')
+        2   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*Spotify.apk*')
+        2   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*%c3%9aj%20mappa/*')
+        1   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*Platformer%20teszt_1_1.0.apk*')
+        1   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*2024-03-17_20h12_04.png*')
+        1   open-directory.gadget.censeye                                  services:(labels=open-dir and http.response.body='*RazorEngine.zip*')
 ... snip snip ...
-                                                                                                                                                                                                          
+
 Interesting search terms: 4
  - services:(labels=open-dir and http.response.body='*%c3%9aj%20mappa/*')
  - services:(labels=open-dir and http.response.body='*Filmek/*')

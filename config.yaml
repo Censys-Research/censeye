@@ -1,6 +1,6 @@
 workers: 2
 max_serv_count: 20     # maximum number of services to proces on a host
-max_search_results: 45  # number of search results to process (if depth > 0) 
+max_search_results: 45  # number of search results to process (if depth > 0)
 min_pivot_weight: 0.0  # only pivot into fields that have a weight greater than this
 
 rarity:
@@ -91,7 +91,7 @@ fields:
       - "<title></title>"
       - "<title>401 - Unauthorized</title>"
       - "<TITLE>Not Found</TITLE>"
-      - '<meta charset="UTF-8">' 
+      - '<meta charset="UTF-8">'
       - '<meta charset="utf-8">'
       - "<title>400 The plain HTTP request was sent to HTTPS port</title>"
       - '<meta charset="UTF-8" />'
@@ -154,7 +154,7 @@ fields:
           - "text/html; charset=UTF-8"
           - "text/html;charset=UTF-8"
           - "text/html; charset=utf-8"
-      - "Connection": 
+      - "Connection":
           - "close"
           - "keep-alive"
           - "Keep-Alive"

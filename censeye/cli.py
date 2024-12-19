@@ -3,6 +3,7 @@ import logging
 import sys
 import urllib.parse
 from collections import defaultdict
+from typing import Optional
 
 import click
 from appdirs import user_cache_dir
@@ -16,25 +17,33 @@ from rich.tree import Tree
 from . import censeye
 from .__version__ import __version__
 from .config import Config
+from .const import DEFAULT_MAX_SEARCH_RESULTS
 from .gadget import GADGET_NAMESPACE, Gadget
 from .gadgets import unarmed_gadgets
+
+console = Console(record=True, soft_wrap=True)
 
 
 async def run_censeye(
     ip,
     depth=0,
     cache_dir=None,
-    console=Console(record=True, soft_wrap=True),
+    console=console,
     at_time=None,
     query_prefix=None,
     duo_reporting=False,
-    config=Config(),
-    gadgets: set[Gadget] = set(),
+    config: Optional[Config] = None,
+    gadgets: Optional[set[Gadget]] = None,
 ):
+    if config is None:
+        config = Config()
 
     if cache_dir is None:
         cache_dir = user_cache_dir("censys/censeye")
         logging.debug(f"Using cache dir: {cache_dir}")
+
+    if gadgets is None:
+        gadgets = set()
 
     c = censeye.Censeye(
         depth=depth,
@@ -76,7 +85,10 @@ async def run_censeye(
             except Exception:
                 pass
 
-        title = f"[link={link}]{host['ip']}[/link] (depth: {host['depth']}) (Via: {host['parent_ip']} -- {host['found_via']} -- {host['labels']})"
+        title = (
+            f"[link={link}]{host['ip']}[/link] (depth: {host['depth']}) (Via:"
+            f" {host['parent_ip']} -- {host['found_via']} -- {host['labels']})"
+        )
 
         table = Table(
             title=title,
@@ -124,7 +136,7 @@ async def run_censeye(
 
             if row not in seen_rows:
                 row_style = None
-                count_col = str()
+                count_col = ""
 
                 if (
                     r["hosts"] <= config.max_host_count
@@ -215,7 +227,10 @@ async def run_censeye(
                 if at_time:
                     via_str = f"{via_str} @ {at_time}"
 
-                lnk = f"[link=https://search.censys.io/hosts/{cip}][b]{cip_fmt}[/b][/link] ({via_str}) {labels}"
+                lnk = (
+                    f"[link=https://search.censys.io/hosts/{cip}][b]{cip_fmt}[/b][/link]"
+                    f" ({via_str}) {labels}"
+                )
 
                 child_tree = parent_tree.add(lnk)
                 _build_tree(cip, child_tree)
@@ -243,7 +258,10 @@ async def run_censeye(
     "--depth",
     "-d",
     default=0,
-    help="[auto-pivoting] search depth (0 is single host, 1 is all the hosts that host found, etc...)",
+    help=(
+        "[auto-pivoting] search depth (0 is single host, 1 is all the hosts that host"
+        " found, etc...)"
+    ),
 )
 @click.option(
     "--workers",
@@ -259,7 +277,7 @@ async def run_censeye(
 @click.option(
     "--max-search-results",
     "-m",
-    default=censeye.DEFAULT_MAX_SEARCH_RESULTS,
+    default=DEFAULT_MAX_SEARCH_RESULTS,
     help="maximum number of censys search results to process",
 )
 @click.option(
@@ -273,7 +291,10 @@ async def run_censeye(
     "--pivot-threshold",
     "-p",
     default=128,
-    help="maximum number of hosts for a search term that will trigger a pivot (default: 120)",
+    help=(
+        "maximum number of hosts for a search term that will trigger a pivot (default:"
+        " 128)"
+    ),
 )
 @click.option(
     "--at-time",
@@ -285,19 +306,28 @@ async def run_censeye(
     "--query-prefix",
     "-q",
     default=None,
-    help="prefix to add to all queries (useful for filtering, the ' and ' is added automatically)",
+    help=(
+        "prefix to add to all queries (useful for filtering, the ' and ' is added"
+        " automatically)"
+    ),
 )
 @click.option(
     "--input-workers",
     default=2,
-    help="number of parallel workers to process inputs (e.g., only has an effect on stdin inputs)",
+    help=(
+        "number of parallel workers to process inputs (e.g., only has an effect on"
+        " stdin inputs)"
+    ),
 )
 @click.option(
     "--query-prefix-count",
     "-qp",
     is_flag=True,
     default=False,
-    help="If the --query-prefix is set, this will return a count of hosts for both the filtered and unfiltered results.",
+    help=(
+        "If the --query-prefix is set, this will return a count of hosts for both the"
+        " filtered and unfiltered results."
+    ),
 )
 @click.option(
     "--config",
@@ -311,7 +341,10 @@ async def run_censeye(
     "-mp",
     "-M",
     type=float,
-    help="[auto-pivoting] only pivot into fields with a weight greater-than or equal-to this number (see configuration)",
+    help=(
+        "[auto-pivoting] only pivot into fields with a weight greater-than or equal-to"
+        " this number (see configuration)"
+    ),
 )
 @click.option(
     "--fast", is_flag=True, help="[auto-pivoting] alias for --min-pivot-weight 1.0"
@@ -405,12 +438,16 @@ def main(
 
         logging.basicConfig(
             level=llevel,
-            format="%(asctime)s [%(filename)s:%(lineno)d] - %(levelname)s - %(message)s",
+            format=(
+                "%(asctime)s [%(filename)s:%(lineno)d] - %(levelname)s - %(message)s"
+            ),
         )
     else:
         logging.basicConfig(
             level=logging.CRITICAL,
-            format="%(asctime)s [%(filename)s:%(lineno)d] - %(levelname)s - %(message)s",
+            format=(
+                "%(asctime)s [%(filename)s:%(lineno)d] - %(levelname)s - %(message)s"
+            ),
         )
 
     console = Console(record=True, soft_wrap=True)
@@ -433,7 +470,10 @@ def main(
         while not queue.empty():
             ip = await queue.get()
             logging.debug(
-                f"processing {ip} - max_search_results: {max_search_results} - pivot_threshold: {pivot_threshold} - query_prefix: {query_prefix} - cache_dir: {workspace} - workers: {workers} - at_time: {at_time} - depth: {depth} - save: {save} min_pivot_weight: {min_pivot_weight}"
+                f"processing {ip} - max_search_results: {max_search_results} -"
+                f" pivot_threshold: {pivot_threshold} - query_prefix: {query_prefix} -"
+                f" cache_dir: {workspace} - workers: {workers} - at_time: {at_time} -"
+                f" depth: {depth} - save: {save} min_pivot_weight: {min_pivot_weight}"
             )
             await run_censeye(
                 ip,

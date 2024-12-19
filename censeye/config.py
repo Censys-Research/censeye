@@ -1,13 +1,13 @@
 import os
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union, Set
+from typing import Any, Optional, Union
 
 import yaml
 
 from .gadgets import unarmed_gadgets
 
-IgnoreType = Optional[Union[List[str], List[Dict[str, List[str]]]]]
+IgnoreType = Optional[Union[list[str], list[dict[str, list[str]]]]]
 
 
 @dataclass
@@ -27,16 +27,12 @@ class Field:
         return hash(self.name)
 
 
-from dataclasses import dataclass, field
-from typing import Any, Set, Dict
-
-
 @dataclass
 class Gadget:
     name: str
-    aliases: List[str]
+    aliases: list[str]
     enabled: bool = False
-    config: Dict[str, Any] = field(default_factory=dict)
+    config: dict[str, Any] = field(default_factory=dict)
 
     def __hash__(self) -> int:
         return hash((self.name, frozenset(self.aliases)))
@@ -47,8 +43,11 @@ class Gadget:
 
         return self.name == other.name and self.aliases == other.aliases
 
+
 class Gadgets:
-    def __init__(self, gadgets: Set[Gadget] = set())-> None:
+    def __init__(self, gadgets: Optional[set[Gadget]] = None) -> None:
+        if gadgets is None:
+            gadgets = set()
         self.gadgets = gadgets
 
     def __iter__(self):
@@ -61,7 +60,9 @@ class Gadgets:
         return None
 
     def __contains__(self, key):
-        return any(key == gadget.name or key in gadget.aliases for gadget in self.gadgets)
+        return any(
+            key == gadget.name or key in gadget.aliases for gadget in self.gadgets
+        )
 
     def __len__(self):
         return len(self.gadgets)
@@ -85,7 +86,7 @@ class Gadgets:
             self.gadgets.remove(gadget)
         self.gadgets.add(gadget)
 
-    def update(self, gadgets: Set[Gadget]):
+    def update(self, gadgets: set[Gadget]):
         self.gadgets.update(gadgets)
 
     def enable(self, name: str):
@@ -102,8 +103,9 @@ class Gadgets:
                 return
         raise ValueError(f"Gadget {name} not found")
 
-    def enabled(self) -> Set[Gadget]:
+    def enabled(self) -> set[Gadget]:
         return {gadget for gadget in self.gadgets if gadget.enabled}
+
 
 @dataclass
 class Config:
@@ -114,7 +116,9 @@ class Config:
             try:
                 self._load_config(config_file)
             except FileNotFoundError:
-                warnings.warn(f"Config file {config_file} not found, using defaults")
+                warnings.warn(
+                    f"Config file {config_file} not found, using defaults", stacklevel=2
+                )
         else:
             home_dir = os.path.expanduser("~")
             try:
@@ -501,7 +505,7 @@ class Config:
         ]
 
     def _load_config(self, config_file):
-        with open(config_file, "r") as file:
+        with open(config_file) as file:
             cfg = yaml.safe_load(file)
 
         self.workers = cfg.get("workers", self.workers)
@@ -540,11 +544,10 @@ class Config:
                     )
                 )
 
-
     def __iter__(self):
         return iter(self.fields)
 
-    def __getitem__(self, key) -> Field | None:
+    def __getitem__(self, key) -> Optional[Field]:
         for _field in self.fields:
             if _field == key:
                 return _field
