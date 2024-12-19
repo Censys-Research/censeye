@@ -1,7 +1,7 @@
 import json
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Optional
 
 from appdirs import user_cache_dir
 
@@ -12,28 +12,30 @@ class Gadget(ABC):
     name: str
     aliases: list[str]
     cache_dir: str
-    config: Dict[str, Any] = {}
+    config: dict[str, Any] = {}
 
     Namespace = GADGET_NAMESPACE
 
     def __init__(
         self,
         name: str,
-        aliases: list[str] = [],
-        config: Dict[str, Any] | None = None,
+        aliases: Optional[list[str]] = None,
+        config: Optional[dict[str, Any]] = None,
     ):
         self.name = name
+        if aliases is None:
+            aliases = []
         self.aliases = aliases
         self.cache_dir = self.get_cache_dir()
-        if not config:
+        if config is None:
             config = dict()
         self.config = config
 
     @abstractmethod
-    def run(self, host: dict) -> None:
+    def run(self, host: dict) -> Any:
         pass
 
-    def set_config(self, config: Dict[str, Any] | None) -> None:
+    def set_config(self, config: Optional[dict[str, Any]]) -> None:
         self.config = config or self.config
 
     def get_env(self, key: str, default=None):
@@ -47,12 +49,12 @@ class Gadget(ABC):
     def get_cache_file(self, filename: str) -> str:
         return os.path.join(self.cache_dir, filename)
 
-    def load_json(self, filename: str) -> dict:
+    def load_json(self, filename: str) -> Optional[dict]:
         try:
-            with open(self.get_cache_file(filename), "r") as f:
+            with open(self.get_cache_file(filename)) as f:
                 return json.load(f)
         except FileNotFoundError:
-            return {}
+            return None
 
     def save_json(self, filename: str, data: dict) -> None:
         with open(self.get_cache_file(filename), "w") as f:
@@ -74,7 +76,11 @@ class HostLabelerGadget(Gadget):
         self.label_host(host)
 
     def add_label(
-        self, host: dict, label: str, style: str | None = None, link: str | None = None
+        self,
+        host: dict,
+        label: str,
+        style: Optional[str] = None,
+        link: Optional[str] = None,
     ) -> None:
         if style:
             label = f"[{style}]{label}[/{style}]"
@@ -85,15 +91,15 @@ class HostLabelerGadget(Gadget):
 
 class QueryGeneratorGadget(Gadget):
     @abstractmethod
-    def generate_query(self, host: dict) -> set[tuple[str, str]] | None:
+    def generate_query(self, host: dict) -> Optional[set[tuple[str, str]]]:
         pass
 
-    def run(self, host: dict) -> set[tuple[str, str]] | None:
+    def run(self, host: dict) -> Optional[set[tuple[str, str]]]:
         ret = set()
 
         q = self.generate_query(host)
         if not q:
-            return
+            return None
 
         for k, v in q:
             if not k.endswith(self.Namespace):

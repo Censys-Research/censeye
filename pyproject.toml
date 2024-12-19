@@ -1,3 +1,15 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 70.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.black]
+target-version = ["py39"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+known_first_party = ["censeye"]
+known_local_folder = ["censeye"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+extend_skip = ["setup.py", "conf.py"]

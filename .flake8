@@ -1,0 +1,13 @@
+[flake8]
+max-line-length = 88
+exclude =
+    .venv,
+    # No need to traverse our git directory
+    .git,
+    # There's no value in checking cache directories
+    __pycache__,
+    # This contains our built documentation
+    build,
+    # This contains builds
+    dist
+extend-ignore = E203,E501,E701
