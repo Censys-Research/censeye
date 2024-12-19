@@ -34,21 +34,20 @@
 
 This tool is designed to help researchers identify hosts with characteristics similar to a given target. For instance, if you come across a suspicious host, the tool enables you to determine the most effective Censys search terms for discovering related infrastructure. Once those search terms are identified, the utility can automatically query the Censys API to fetch hosts matching those criteria, download the results, and repeat the analysis on the newly found hosts.
 
-Censeye was hacked together over the course of a few weeks to automate routine tasks performed by our research team. While it has proven useful in streamlining daily workflows, its effectiveness may vary depending on specific use cases. 
+Censeye was hacked together over the course of a few weeks to automate routine tasks performed by our research team. While it has proven useful in streamlining daily workflows, its effectiveness may vary depending on specific use cases.
 
 ## Setup
 
-Using python virtual-env, we can do the following to set everything up:
+Install the tool using pip:
 
 ```shell
-$ python -m venv .venv && source .venv/bin/activate  
-$ pip install censeye
-$ censeye --help
+pip install censeye
+censeye --help
 ```
 
 **Note**: Censeye requires the latest version of [censys-python](https://github.com/censys/censys-python) and a Censys API key, this is configured via the `censys` command-line tool:
 
-```
+```shell
 $ censys config
 
 Censys API ID: XXX
@@ -65,22 +64,22 @@ Successfully authenticated for your@email.com
 <BS>
 The visual representation above outlines how Censeye operates. In textual form, the tool follows a straightforward workflow:
 
-1. **Fetch Initial Host Data**  
+1. **Fetch Initial Host Data**
    Use the Censys Host API to retrieve data for a specified host.
 
-2. **Generate Search Queries**  
-   For each [keyword](https://search.censys.io/search/definitions?resource=hosts) found in the host data (see: [Configuration](#configuration)), generate a valid Censys search query that matches the corresponding key-value pair.  
-   Example:  
+2. **Generate Search Queries**
+   For each [keyword](https://search.censys.io/search/definitions?resource=hosts) found in the host data (see: [Configuration](#configuration)), generate a valid Censys search query that matches the corresponding key-value pair.
+   Example:
    `services.ssh.server_host_key.fingerprint_sha256=531a33202a58e4437317f8086d1847a6e770b2017b34b6676a033e9dc30a319c`
 
-3. **Aggregate Data Using Reporting API**  
+3. **Aggregate Data Using Reporting API**
    Leverage the Censys Reporting API to generate aggregate reports for each search query, using `ip` as the "breakdown" with a bucket count of `1`. The `total` value is used to determine the number of hosts matching each query.
 
-4. **Identify "Interesting" Queries**  
+4. **Identify "Interesting" Queries**
    Censys search queries with a host count (aka: [rarity](#configuring-rarity) ) between 2 and a configurable maximum are tagged as as "interesting." These queries represent search terms observed on the host that are also found in a limited number of other hosts.
 
-5. **Recursive Pivoting (Optional)**  
-   If the `--depth` flag is set to a value greater than zero, the tool uses the Censys Search API to fetch a list of hosts matching the "interesting" search queries. It then loops back to Step 1 for these newly discovered hosts, repeating the process until the specified depth is reached.  
+5. **Recursive Pivoting (Optional)**
+   If the `--depth` flag is set to a value greater than zero, the tool uses the Censys Search API to fetch a list of hosts matching the "interesting" search queries. It then loops back to Step 1 for these newly discovered hosts, repeating the process until the specified depth is reached.
 
    **Note:** Queries are never reused across different depths. For example, a query identified at depth 1 will not be applied at depths 2 or beyond.
 
@@ -131,8 +130,8 @@ These options will all override the settings in the [configuration](#configurati
 
 If an IP is not specified in the arguments, the default behavior is to read IPs from stdin. This enables integration with other tools to seed input for this utility. For example:
 
-```
-$ censys search labels=c2 | jq '.[].ip' | censeye
+```shell
+censys search labels=c2 | jq '.[].ip' | censeye
 ```
 
 ## Reporting
@@ -157,7 +156,7 @@ When the `--depth` argument is set to a value greater than zero, the "interestin
 
 Furthermore, the output will include a new section labeled the `Pivot Tree`. For example:
 
-```
+```plain
 Pivot Tree:
 5.188.87.38
 ├── 5.178.1.11      (via: services.ssh.server_host_key.fingerprint_sha256="f95812cbb46f0a664a8f2200592369b105d17dfe8255054963aac4e2df53df51") ['remote-access']
@@ -177,7 +176,7 @@ Here, our initial input was the host `5.188.87.38`. Using the host details from 
 
 One of the matching hosts was `179.60.149.209`, and you can see how Censeye discovered that host through the `via:` statement in the report:
 
-```
+```plain
 ├── 179.60.149.209  (via: services.ssh.server_host_key.fingerprint_sha256="f95812cbb46f0a664a8f2200592369b105d17dfe8255054963aac4e2df53df51")
 ```
 
@@ -195,14 +194,14 @@ In this screenshot, we see that `113.250.188.15` has a TLS fingerprint `e426a945
 
 Historical certificate observations are also displayed as a tree beneath the main table. Each of these fields is clickable (if supported by your terminal) and links to the corresponding host on the given date.
 
-These historical hosts are also included in [auto-pivoting](#Auto_Pivoting) if the `--depth` argument is set to a value greater than zero. In this case, the tool will use the host data from the time the certificate was observed to guide the crawler.
+These historical hosts are also included in [auto-pivoting](#auto-pivoting) if the `--depth` argument is set to a value greater than zero. In this case, the tool will use the host data from the time the certificate was observed to guide the crawler.
 
 ## Query Prefix Filtering
 
 One of the things we use this tool here at Censys for is to use hosts that we already know are malicious to find other hosts that may be malicious that we have not labeled as such. For example:
 
 ```shell
-$ censys search 'labels=c2' | jq '.[].ip' | censeye --query-prefix 'not labels=c2'
+censys search 'labels=c2' | jq '.[].ip' | censeye --query-prefix 'not labels=c2'
 ```
 
 This `--query-prefix` flag tells Censeye that for every aggregation report that it generates, add the `not labels=c2` to the query. The goal here is to look at hosts already labeled as a `c2` to find other hosts not labeled as `c2`.
@@ -222,71 +221,70 @@ Censeye "Gadgets" are bits of code that extend Censeye in two ways (currently): 
 ```yaml
 gadgets:
   - gadget: open-directory
-    enabled: true 
+    enabled: true
   - gadget: nobbler
-    enabled: true 
+    enabled: true
   - gadget: virustotal
-    enabled: true 
+    enabled: true
   - gadget: threatfox
-    enabled: true 
+    enabled: true
 ```
 
 A list of gadgets and their underlying documentation may be viewed with the `--list-gadgets` flag.
 
 ```shell
 ~$ censeye --list-gadgets
-  name           │ aliases        │ desc                                                                                                                 
- ════════════════╪════════════════╪═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ 
-  open-directory │ odir, open-dir │ When a service is found with an open directory listing, this gadget will attempt to parse out the file names from    
-                 │                │ the HTTP response body and generate queries for each file found.                                                     
-                 │                │                                                                                                                      
-                 │                │ This is useful for finding additional hosts with the same specific files.                                            
-                 │                │                                                                                                                      
-                 │                │ Configuration                                                                                                        
-                 │                │  - max_files: The maximum number of files to generate queries for.                                                   
-                 │                │    default: 32                                                                                                       
-                 │                │  - min_chars: The minimum number of characters a file name must have to be considered.                               
-                 │                │    default: 2                                                                                                        
-                 │                │                                                                                                                      
-  threatfox      │ tf             │ Gadget to label hosts that are present in ThreatFox.                                                                 
-  virustotal     │ vt             │ A simple VirusTotal API client which will label the host if it is found to be malicious.                             
-                 │                │                                                                                                                      
-                 │                │     Configuration:                                                                                                   
-                 │                │      - VT_API_KEY: *ENVVAR* VirusTotal API key                                                                       
-                 │                │                                                                                                                      
-  nobbler        │ nob, nblr      │ When the service_name is UNKNOWN, it is often more effective to search the first N bytes of the response rather      
-                 │                │ than analyzing the entire response.                                                                                  
-                 │                │                                                                                                                      
-                 │                │ Many services include a fixed header or a "magic number" at the beginning of their responses, followed by dynamic    
-                 │                │ data at a later offset. This feature generates queries that focus on the initial N bytes of the response at various  
-                 │                │ offsets while using wildcards for the remaining data.                                                                
-                 │                │                                                                                                                      
-                 │                │ The goal is to make the search more generalizable: analyzing the full UNKNOWN response might only match a specific   
-                 │                │ host, whereas examining just the initial N bytes is likely to match similar services across multiple hosts.          
-                 │                │                                                                                                                      
-                 │                │ Configuration:                                                                                                       
-                 │                │  - iterations: A list of integers specifying the number of bytes to examine at the start of the response.            
-                 │                │  - default: [4, 8, 16, 32]                                                                                           
-                 │                │    - services.banner_hex=XXXXXXXX*                                                                                   
-                 │                │    - services.banner_hex=XXXXXXXXXXXXXXXX*                                                                           
-                 │                │    - services.banner_hex=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*                                                           
-                 │                │    - services.banner_hex=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*                           
+  name           │ aliases        │ desc
+ ════════════════╪════════════════╪═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  open-directory │ odir, open-dir │ When a service is found with an open directory listing, this gadget will attempt to parse out the file names from
+                 │                │ the HTTP response body and generate queries for each file found.
+                 │                │
+                 │                │ This is useful for finding additional hosts with the same specific files.
+                 │                │
+                 │                │ Configuration
+                 │                │  - max_files: The maximum number of files to generate queries for.
+                 │                │    default: 32
+                 │                │  - min_chars: The minimum number of characters a file name must have to be considered.
+                 │                │    default: 2
+                 │                │
+  threatfox      │ tf             │ Gadget to label hosts that are present in ThreatFox.
+  virustotal     │ vt             │ A simple VirusTotal API client which will label the host if it is found to be malicious.
+                 │                │
+                 │                │     Configuration:
+                 │                │      - VT_API_KEY: *ENVVAR* VirusTotal API key
+                 │                │
+  nobbler        │ nob, nblr      │ When the service_name is UNKNOWN, it is often more effective to search the first N bytes of the response rather
+                 │                │ than analyzing the entire response.
+                 │                │
+                 │                │ Many services include a fixed header or a "magic number" at the beginning of their responses, followed by dynamic
+                 │                │ data at a later offset. This feature generates queries that focus on the initial N bytes of the response at various
+                 │                │ offsets while using wildcards for the remaining data.
+                 │                │
+                 │                │ The goal is to make the search more generalizable: analyzing the full UNKNOWN response might only match a specific
+                 │                │ host, whereas examining just the initial N bytes is likely to match similar services across multiple hosts.
+                 │                │
+                 │                │ Configuration:
+                 │                │  - iterations: A list of integers specifying the number of bytes to examine at the start of the response.
+                 │                │  - default: [4, 8, 16, 32]
+                 │                │    - services.banner_hex=XXXXXXXX*
+                 │                │    - services.banner_hex=XXXXXXXXXXXXXXXX*
+                 │                │    - services.banner_hex=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*
+                 │                │    - services.banner_hex=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*
 ```
-
 
 ### Query Generators
 
-Query Generator gadgets are used to generate additional queries for reporting and pivoting just like any other configured field. 
+Query Generator gadgets are used to generate additional queries for reporting and pivoting just like any other configured field.
 
-Currently, there are two query generator gadgets included with Censeye: 
+Currently, there are two query generator gadgets included with Censeye:
 
 ![open-directory example](./static/gadget_open_dir.png)
 
-"open-directory": This gadget will parse out file names in HTTP response bodies from the Censys host result that have a known open-directory. These filenames will then be expanded to a proper Censys query (e.g., `services:(labels=open-dir and http.response.body='*$FILENAME*')`) to find other open-dictories on other hosts.
+"open-directory": This gadget will parse out file names in HTTP response bodies from the Censys host result that have a known open-directory. These filenames will then be expanded to a proper Censys query (e.g., `services:(labels=open-dir and http.response.body='*$FILENAME*')`) to find other open-directories on other hosts.
 
 ![nobbler example](./static/gadget_nobbler.png)
 
-"nobbler": This gadget will look at `UNKNOWN` services and generate one or more queries that attempt to find other hosts with the same banner, but at different offsets. The idea that many unknown responses will contain some binary protocol where there may be a header or some common element at the start of the response, but the actual data may be dynamic. 
+"nobbler": This gadget will look at `UNKNOWN` services and generate one or more queries that attempt to find other hosts with the same banner, but at different offsets. The idea that many unknown responses will contain some binary protocol where there may be a header or some common element at the start of the response, but the actual data may be dynamic.
 
 ### Host Labelers
 
@@ -350,7 +348,6 @@ fields:
           - "Keep-Alive"
 ```
 
-
 ### Configuring Rarity
 
 The rarity setting defines what constitutes an "interesting" search term. Once an aggregation report is fetched for a given search statement, the term is flagged as "interesting" if the number of matching hosts is greater than `min` but less than `max`.
@@ -360,7 +357,6 @@ If the `--depth` flag is set, these "interesting" search terms are used to pivot
 1. The report will include different colors and highlighting for the matching rows.
 2. The final output will contain an aggregate list of "interesting search terms."
 
-
 ### Configuring Fields
 
 Censeye does not generate aggregate reports for every single field in a host result, as some fields are more useful than others. Instead, it focuses on fields explicitly defined as relevant for reporting.
@@ -369,7 +365,6 @@ Each field definition includes two configurable options:
 
 1. **Ignored Values**: Specific values within the field that should be excluded from the report.
 2. **Weight**: The relative importance of the field, which can influence prioritization in reporting and analysis.
-
 
 #### Ignoring field values
 
@@ -407,7 +402,7 @@ In the above configuration, some fields are prefixed with a `~` character, for e
 
 In this case, if a host includes the `services.tls.certificates.leaf_data.subject.organization` field in its data, the value is used as a wildcard search in Censys. The resulting search statement will resemble the following:
 
-```
+```plain
 (not services.tls.certificates.leaf_data.subject.organization=$VALUE) and "$VALUE"
 ```
 
@@ -463,8 +458,9 @@ If you have any ideas for improvements or new features, please feel free to open
 To set up a development environment, you can use the following commands:
 
 ```shell
-$ git clone https://github.com/Censys-Research/censeye.git
-$ cd censeye
-$ python -m venv .venv && source .venv/bin/activate
-$ pip install -e ".[dev]"
+git clone https://github.com/Censys-Research/censeye.git
+cd censeye
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+pre-commit install
 ```

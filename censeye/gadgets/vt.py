@@ -1,3 +1,5 @@
+from typing import Optional
+
 import requests
 
 from censeye.gadget import HostLabelerGadget
@@ -7,7 +9,7 @@ class VT:
     def __init__(self, key):
         self.key = key
 
-    def fetch_ip(self, ip) -> dict | None:
+    def fetch_ip(self, ip) -> Optional[dict]:
         url = f"https://www.virustotal.com/api/v3/ip_addresses/{ip}"
         headers = {"accept": "application/json", "x-apikey": self.key}
 

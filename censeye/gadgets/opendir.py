@@ -1,5 +1,7 @@
-from bs4 import BeautifulSoup
 import logging
+from typing import Optional
+
+from bs4 import BeautifulSoup
 
 from censeye.gadget import QueryGeneratorGadget
 
@@ -42,7 +44,7 @@ class OpenDirectoryGadget(QueryGeneratorGadget):
                 files.append(href)
         return files
 
-    def generate_query(self, host: dict) -> set[tuple[str, str]] | None:
+    def generate_query(self, host: dict) -> Optional[set[tuple[str, str]]]:
         queries: set[tuple[str, str]] = set()
         for service in host.get("services", []):
             if "open-dir" not in service.get("labels", []):

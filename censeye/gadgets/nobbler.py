@@ -1,3 +1,5 @@
+from typing import Optional
+
 from censeye.gadget import QueryGeneratorGadget
 
 
@@ -25,7 +27,7 @@ class NobblerGadget(QueryGeneratorGadget):
         if not self.config.get("iterations"):
             self.config["iterations"] = [4, 8, 16, 32]
 
-    def generate_query(self, host: dict) -> set[tuple[str, str]] | None:
+    def generate_query(self, host: dict) -> Optional[set[tuple[str, str]]]:
         queries = set()
         for service in host.get("services", []):
             if service.get("service_name") == "UNKNOWN":

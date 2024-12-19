@@ -3,13 +3,13 @@ import hashlib
 import logging
 import os
 import pickle
-from typing import Set
+from typing import Optional
 
 from censys.search import CensysHosts
 
 from .aggregator import Aggregator
 from .config import Config
-from .const import *
+from .const import USER_AGENT
 from .gadget import Gadget, HostLabelerGadget
 
 
@@ -24,12 +24,16 @@ class Censeye:
         at_time=None,
         query_prefix=None,
         duo_reporting=False,
-        config: Config = Config(),
-        armed_gadgets: Set[Gadget] = set(),
+        config: Optional[Config] = None,
+        armed_gadgets: Optional[set[Gadget]] = None,
     ):
+        if config is None:
+            config = Config()
         self.config = config
         self.workers = config.workers
         self.client = CensysHosts(user_agent=USER_AGENT)
+        if armed_gadgets is None:
+            armed_gadgets = set()
         self.find = Aggregator(
             cache_dir=cache_dir,
             query_prefix=query_prefix,
@@ -55,7 +59,10 @@ class Censeye:
             os.makedirs(self.cache_dir, exist_ok=True)
 
         logging.info(
-            f"max_host_count: {self.config.max_host_count}, min_host_count: {self.config.min_host_count}, max_service_count: {self.config.max_serv_count} workers: {self.config.workers} depth: {self.depth} cache_dir: {self.cache_dir}"
+            f"max_host_count: {self.config.max_host_count}, min_host_count:"
+            f" {self.config.min_host_count}, max_service_count:"
+            f" {self.config.max_serv_count} workers: {self.config.workers} depth:"
+            f" {self.depth} cache_dir: {self.cache_dir}"
         )
 
     def _get_cache_filename(self, input_data, at_time=None, other=None):
@@ -120,7 +127,9 @@ class Censeye:
 
     async def _search(self, qstr):
         """Use Censys API to search for hosts based on the query and cache the results."""
-        qstr = f"({qstr}) and not labels={{tarpit, truncated}}"  # Exclude unwanted host types
+        qstr = (  # Exclude unwanted host types
+            f"({qstr}) and not labels={{tarpit, truncated}}"
+        )
         if self.query_prefix:
             qstr = f"({self.query_prefix}) and ({qstr})"
 
@@ -241,12 +250,14 @@ class Censeye:
                 ):
                     if depth + 1 > self.depth:
                         logging.debug(
-                            f"max depth reached for query: {new_query}, not going any further."
+                            f"max depth reached for query: {new_query}, not going any"
+                            " further."
                         )
                     else:
                         if weight >= self.config.min_pivot_weight:
                             logging.info(
-                                f"Pivoting into:'{new_query}' via: (ip={ip}, parent={parent}, host_count={r['hosts']})"
+                                f"Pivoting into:'{new_query}' via: (ip={ip},"
+                                f" parent={parent}, host_count={r['hosts']})"
                             )
 
                             self.search_buckets.setdefault(depth, set()).add(new_query)
