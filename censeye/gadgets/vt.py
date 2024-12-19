@@ -51,6 +51,8 @@ class VTGadget(HostLabelerGadget):
 
         if not response:
             response = vt.fetch_ip(ip)
+            if not response:
+                return None
             self.save_json(cache_file, response)
 
         if self.is_malicious(response):

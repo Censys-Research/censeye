@@ -4,7 +4,7 @@ import logging
 import os
 import pickle
 import urllib.parse
-from typing import Optional
+from typing import Any, Optional
 
 from censys.search import SearchClient
 
@@ -25,9 +25,8 @@ class Aggregator:
         armed_gadgets: Optional[set[Gadget]] = None,
     ):
         self.client = SearchClient(user_agent=USER_AGENT)
-        self.seen_hosts = set()
-        self.seen_queries = set()
-        self.seen_raw = dict()
+        self.seen_hosts: set[str] = set()
+        self.seen_queries: set[tuple[str, Any]] = set()
         self.cache_dir = cache_dir
         self.num_queries = 0
         self.query_prefix = query_prefix

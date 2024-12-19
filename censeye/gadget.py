@@ -32,7 +32,7 @@ class Gadget(ABC):
         self.config = config
 
     @abstractmethod
-    def run(self, host: dict) -> None:
+    def run(self, host: dict) -> Any:
         pass
 
     def set_config(self, config: Optional[dict[str, Any]]) -> None:
@@ -49,12 +49,12 @@ class Gadget(ABC):
     def get_cache_file(self, filename: str) -> str:
         return os.path.join(self.cache_dir, filename)
 
-    def load_json(self, filename: str) -> dict:
+    def load_json(self, filename: str) -> Optional[dict]:
         try:
             with open(self.get_cache_file(filename)) as f:
                 return json.load(f)
         except FileNotFoundError:
-            return {}
+            return None
 
     def save_json(self, filename: str, data: dict) -> None:
         with open(self.get_cache_file(filename), "w") as f:
@@ -99,7 +99,7 @@ class QueryGeneratorGadget(Gadget):
 
         q = self.generate_query(host)
         if not q:
-            return
+            return None
 
         for k, v in q:
             if not k.endswith(self.Namespace):

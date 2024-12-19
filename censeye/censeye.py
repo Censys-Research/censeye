@@ -41,7 +41,7 @@ class Censeye:
             config=config,
             armed_gadgets=armed_gadgets,
         )
-        self.seen_hosts = set()
+        self.seen_hosts: set[str] = set()
         self.depth = depth
         self.cache_dir = cache_dir
         self.at_time = at_time
@@ -49,8 +49,8 @@ class Censeye:
             query_prefix  # this gets appended to every report and search
         )
         self.num_queries = 0
-        self.in_transit = set()
-        self.search_buckets = dict()
+        self.in_transit: set[str] = set()
+        self.search_buckets: dict[int, set[str]] = dict()
         self.lock = asyncio.Lock()
         self.duo_reporting = duo_reporting
         self.gadgets = armed_gadgets
